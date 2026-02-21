@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NimLogic – El Juego del Nim</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Cinzel:wght@400;600&display=swap');
+
+:root {
+  --gold:       #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dark:  #8a6a2a;
+  --gold-glow:  rgba(201,168,76,.4);
+  --bg:         #0e0b05;
+  --panel-bg:   linear-gradient(160deg,#3a2a0c,#1e1408);
+  --panel-b:    #7a5a1a;
+  --ok:         #60d870;
+  --err:        #e06060;
+  --hint:       #60b8e8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(ellipse at 15% 15%,#241806 0%,transparent 55%),
+                   radial-gradient(ellipse at 85% 85%,#160e03 0%,transparent 55%);
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  padding:16px 10px 60px; font-family:'Rajdhani',sans-serif; color:var(--gold-light);
+  user-select:none;
+}
+h1{
+  font-family:'Orbitron',monospace; font-weight:900;
+  font-size:clamp(1.5rem,4vw,2.3rem); letter-spacing:.2em; color:var(--gold-light);
+  text-shadow:0 0 30px var(--gold-glow),0 0 70px rgba(201,168,76,.15);
+  text-transform:uppercase; margin-bottom:2px;
+}
+.subtitle{
+  font-family:'Cinzel',serif; font-size:.72rem; color:var(--gold-dark);
+  letter-spacing:.3em; text-transform:uppercase; margin-bottom:16px;
+}
+.main-layout{display:flex;gap:14px;align-items:flex-start;width:100%;max-width:1160px;}
+.game-col{
+  flex:1 1 auto; min-width:0;
+  background:var(--panel-bg); border:2px solid var(--panel-b); border-radius:18px;
+  padding:16px 14px 18px;
+  box-shadow:0 0 50px rgba(201,168,76,.1),inset 0 0 40px rgba(0,0,0,.5);
+}
+.side-col{flex:0 0 290px;display:flex;flex-direction:column;gap:12px;}
+.side-panel{
+  background:var(--panel-bg); border:2px solid var(--panel-b); border-radius:18px;
+  padding:14px 13px;
+  box-shadow:0 0 40px rgba(201,168,76,.07),inset 0 0 30px rgba(0,0,0,.4);
+}
+.panel-title{
+  font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;
+  letter-spacing:.13em;color:var(--gold-light);margin-bottom:10px;
+  text-align:center;text-transform:uppercase;
+}
+.options{
+  display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:12px;
+  font-size:.73rem;color:var(--gold-dark);font-weight:600;letter-spacing:.07em;flex-wrap:wrap;
+}
+.options label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+select{
+  background:#1a1005;color:var(--gold-light);border:1px solid var(--gold-dark);
+  border-radius:5px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-size:.82rem;
+}
+.stats-bar{display:flex;justify-content:center;gap:24px;margin-bottom:12px;flex-wrap:wrap;}
+.stat-item{display:flex;flex-direction:column;align-items:center;}
+.stat-val{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:700;color:var(--gold-light);line-height:1;}
+.stat-lbl{font-size:.56rem;color:var(--gold-dark);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;}
+.message{
+  text-align:center;font-family:'Orbitron',monospace;font-size:.68rem;
+  min-height:22px;margin-bottom:10px;letter-spacing:.07em;color:var(--gold-light);transition:color .3s;
+}
+.message.win{color:var(--ok);text-shadow:0 0 14px rgba(80,220,80,.5);}
+.message.err{color:var(--err);}
+.message.info{color:var(--hint);}
+.turn-indicator{display:flex;justify-content:center;gap:24px;margin-bottom:10px;}
+.turn-card{
+  padding:6px 16px;border-radius:8px;text-align:center;
+  border:1px solid rgba(138,106,42,.25);background:rgba(0,0,0,.3);transition:all .3s;
+}
+.turn-card.active-turn{border-color:var(--gold);background:rgba(201,168,76,.12);box-shadow:0 0 14px var(--gold-glow);}
+.turn-card.active-turn.enemy{border-color:var(--hint);background:rgba(96,184,232,.1);box-shadow:0 0 14px rgba(96,184,232,.3);}
+.turn-name{font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:.1em;color:var(--gold-dark);text-transform:uppercase;}
+.turn-name.mine{color:var(--gold);}
+.turn-name.ai{color:var(--hint);}
+.turn-score{font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:900;color:var(--gold-light);}
+.nim-board{
+  background:rgba(0,0,0,.28);border:1px solid rgba(138,106,42,.22);
+  border-radius:12px;padding:14px 12px;margin-bottom:12px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.row-container{display:flex;align-items:center;gap:10px;}
+.row-label{font-family:'Orbitron',monospace;font-size:.62rem;color:var(--gold-dark);width:20px;text-align:right;flex-shrink:0;}
+.row-stones{display:flex;gap:5px;flex-wrap:wrap;flex:1;}
+.stone{
+  width:34px;height:34px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#e8c97a,#8a6a2a 60%,#4a3a10);
+  border:2px solid var(--gold-dark);cursor:pointer;transition:all .18s;
+  box-shadow:0 2px 8px rgba(0,0,0,.5),inset 0 1px 3px rgba(255,255,255,.15);
+}
+.stone:hover{transform:scale(1.12);box-shadow:0 0 14px var(--gold-glow),0 2px 8px rgba(0,0,0,.5);border-color:var(--gold-light);}
+.stone.selected{
+  background:radial-gradient(circle at 35% 35%,#ffffff,#e8c97a 50%,#c9a84c);
+  border-color:var(--gold-light);box-shadow:0 0 18px rgba(255,255,220,.6),0 2px 8px rgba(0,0,0,.5);transform:scale(1.1);
+}
+.stone.removed{background:rgba(0,0,0,.2);border:2px dashed rgba(138,106,42,.2);cursor:default;box-shadow:none;transform:none;}
+.stone.removed:hover{transform:none;box-shadow:none;border-color:rgba(138,106,42,.2);}
+.row-count{font-family:'Orbitron',monospace;font-size:.65rem;color:var(--gold-dark);width:22px;text-align:left;flex-shrink:0;}
+.controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+button{
+  font-family:'Orbitron',monospace;font-size:.58rem;font-weight:700;
+  letter-spacing:.08em;padding:8px 14px;border-radius:7px;
+  border:none;cursor:pointer;text-transform:uppercase;transition:all .2s;
+}
+#btn-take{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#1a1005;box-shadow:0 3px 12px rgba(201,168,76,.3);}
+#btn-take:hover:not(:disabled){box-shadow:0 3px 22px rgba(201,168,76,.55);transform:translateY(-1px);}
+#btn-take:disabled{opacity:.3;cursor:not-allowed;}
+#btn-new{background:rgba(255,255,255,.06);color:var(--gold-dark);border:1px solid var(--gold-dark);}
+#btn-new:hover{background:rgba(255,255,255,.13);color:var(--gold-light);}
+.nim-value-display{
+  background:rgba(0,0,0,.4);border:1px solid rgba(96,184,232,.25);
+  border-radius:8px;padding:9px 11px;margin-bottom:8px;
+}
+.nim-value-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:.69rem;}
+.nim-value-row:last-child{margin-bottom:0;}
+.nv-lbl{color:var(--gold-dark);letter-spacing:.05em;}
+.nv-val{font-family:'Orbitron',monospace;font-weight:700;color:var(--gold-light);}
+.nv-val.zero{color:var(--err);}
+.nv-val.nonzero{color:var(--ok);}
+.nv-val.xor{color:var(--hint);}
+.nim-formula{
+  background:rgba(0,0,0,.4);border:1px solid rgba(138,106,42,.3);
+  border-radius:8px;padding:8px 10px;text-align:center;
+  font-family:'Orbitron',monospace;font-size:.72rem;color:var(--gold-light);letter-spacing:.05em;
+}
+.ai-hint{
+  background:rgba(96,184,232,.07);border:1px solid rgba(96,184,232,.22);
+  border-radius:8px;padding:8px 10px;margin-top:8px;font-size:.7rem;
+  color:rgba(160,216,240,.9);line-height:1.6;
+}
+.ai-hint em{color:var(--hint);font-style:normal;}
+.theory-block{margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(138,106,42,.18);}
+.theory-block:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+.theory-title{font-family:'Orbitron',monospace;font-size:.56rem;color:var(--gold);letter-spacing:.1em;margin-bottom:6px;text-transform:uppercase;}
+.theory-text{font-size:.72rem;color:rgba(200,180,120,.85);line-height:1.65;}
+.theory-text em{color:var(--gold-light);font-style:normal;}
+.example-box{
+  background:rgba(0,0,0,.35);border:1px solid rgba(138,106,42,.22);
+  border-radius:7px;padding:7px 9px;margin-top:6px;font-size:.67rem;
+  color:rgba(200,180,120,.75);line-height:1.75;font-family:'Orbitron',monospace;
+}
+.example-box .ex-title{color:var(--gold-dark);font-size:.5rem;margin-bottom:3px;letter-spacing:.1em;text-transform:uppercase;font-family:'Rajdhani',sans-serif;}
+.history-list{max-height:150px;overflow-y:auto;font-size:.68rem;display:flex;flex-direction:column;gap:3px;}
+.history-list::-webkit-scrollbar{width:4px;}
+.history-list::-webkit-scrollbar-thumb{background:var(--gold-dark);border-radius:2px;}
+.hist-item{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;border:1px solid rgba(138,106,42,.15);background:rgba(0,0,0,.2);}
+.hist-who{font-family:'Orbitron',monospace;font-size:.52rem;width:22px;text-align:center;border-radius:3px;padding:1px 3px;}
+.hist-who.p{background:rgba(201,168,76,.18);color:var(--gold);}
+.hist-who.c{background:rgba(96,184,232,.12);color:var(--hint);}
+.hist-txt{color:rgba(200,180,120,.8);}
+.win-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .5s;}
+.win-overlay.show{opacity:1;pointer-events:all;}
+.win-box{background:linear-gradient(160deg,#3d2c0e,#251a06);border:2px solid var(--gold);border-radius:20px;padding:30px 44px;text-align:center;max-width:360px;box-shadow:0 0 70px var(--gold-glow),0 0 140px rgba(201,168,76,.12);}
+.win-trophy{font-size:3.2rem;display:block;margin-bottom:10px;animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+.win-title{font-family:'Orbitron',monospace;font-weight:900;font-size:1.4rem;color:var(--gold-light);text-shadow:0 0 20px var(--gold-glow);margin-bottom:6px;}
+.win-sub{font-size:.82rem;color:var(--gold-dark);margin-bottom:18px;line-height:2;}
+.win-sub strong{color:var(--gold-light);}
+.win-btn{font-family:'Orbitron',monospace;font-size:.68rem;font-weight:700;padding:11px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#1a1005;cursor:pointer;letter-spacing:.1em;box-shadow:0 4px 18px rgba(201,168,76,.35);transition:all .2s;}
+.win-btn:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(201,168,76,.5);}
+.particle{position:fixed;pointer-events:none;z-index:99;border-radius:50%;animation:pfall 1.9s ease-in forwards;}
+@keyframes pfall{0%{transform:translateY(-30px) rotate(0deg);opacity:1;}100%{transform:translateY(105vh) rotate(720deg);opacity:0;}}
+@media(max-width:820px){
+  .main-layout{flex-direction:column;align-items:center;}
+  .side-col{flex:none;width:100%;max-width:480px;flex-direction:row;flex-wrap:wrap;}
+  .side-panel{flex:1 1 220px;}
+  .stone{width:28px;height:28px;}
+}
+</style>
+</head>
+<body>
+
+<h1>NimLogic</h1>
+<div class="subtitle">El Juego del Nim · Teoría de Juegos Combinatorio</div>
+
+<div class="main-layout">
+
+  <div class="game-col">
+    <div class="options">
+      <label>Montones
+        <select id="preset-select">
+          <option value="classic">Clásico (1-3-5-7)</option>
+          <option value="small">Pequeño (1-2-3)</option>
+          <option value="medium">Medio (3-4-5-6)</option>
+          <option value="large">Grande (2-4-6-8)</option>
+          <option value="random">Aleatorio</option>
+        </select>
+      </label>
+      <label>Empieza
+        <select id="first-select">
+          <option value="player">Yo primero</option>
+          <option value="ai">IA primero</option>
+        </select>
+      </label>
+      <label>Dificultad IA
+        <select id="ai-select">
+          <option value="optimal">Óptima</option>
+          <option value="random">Aleatoria</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-item"><span class="stat-val" id="score-p">0</span><span class="stat-lbl">Tus Victorias</span></div>
+      <div class="stat-item"><span class="stat-val" id="score-games">0</span><span class="stat-lbl">Partidas</span></div>
+      <div class="stat-item"><span class="stat-val" id="score-ai">0</span><span class="stat-lbl">Victorias IA</span></div>
+    </div>
+
+    <div class="turn-indicator">
+      <div class="turn-card" id="turn-p">
+        <div class="turn-name mine">Tú</div>
+        <div class="turn-score" id="tp-score">·</div>
+      </div>
+      <div class="turn-card" id="turn-ai">
+        <div class="turn-name ai">IA</div>
+        <div class="turn-score" id="tai-score">·</div>
+      </div>
+    </div>
+
+    <div class="message info" id="msg">Iniciando…</div>
+    <div class="nim-board" id="nim-board"></div>
+
+    <div class="controls">
+      <button id="btn-take" disabled>⚡ Tomar seleccionadas</button>
+      <button id="btn-new">↺ Nueva partida</button>
+    </div>
+  </div>
+
+  <div class="side-col">
+
+    <div class="side-panel">
+      <div class="panel-title">🔢 Estado actual</div>
+      <div class="nim-value-display">
+        <div class="nim-value-row"><span class="nv-lbl">Turno:</span><span class="nv-val" id="nv-state">—</span></div>
+        <div class="nim-value-row"><span class="nv-lbl">Nim-Sum (XOR):</span><span class="nv-val xor" id="nv-xor">—</span></div>
+        <div class="nim-value-row"><span class="nv-lbl">Posición:</span><span class="nv-val" id="nv-pos">—</span></div>
+      </div>
+      <div class="nim-formula" id="nim-formula-display">—</div>
+      <div class="ai-hint" id="ai-hint" style="display:none"></div>
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-title">📖 Cómo ganar</div>
+
+      <div class="theory-block">
+        <div class="theory-title">🎯 Objetivo del juego</div>
+        <div class="theory-text">
+          Hay varias filas de piedras. En cada turno debes coger <em>al menos 1 piedra</em> de <em>una sola fila</em> (las que quieras de esa fila). Quien coge la <em>última piedra gana</em>.
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">🔢 El truco: el Nim-Sum</div>
+        <div class="theory-text">
+          La clave es una operación bit a bit llamada <em>XOR</em>. Aplícala a los tamaños de todos los montones. El resultado se llama <em>Nim-Sum</em>.
+        </div>
+        <div class="example-box">
+          <div class="ex-title">Cómo calcular XOR (en binario)</div>
+          3 = 011<br>
+          5 = 101<br>
+          7 = 111<br>
+          ──────────<br>
+          XOR→ 001 = <em style="color:var(--hint)">1</em>
+        </div>
+        <div class="theory-text" style="margin-top:7px">
+          Regla simple: XOR columna a columna en binario. Si el número de <em>1s</em> en cada columna es par → 0; si es impar → 1.
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">🏆 Cuándo ganas y cuándo pierdes</div>
+        <div class="theory-text">
+          Si el Nim-Sum al inicio de tu turno es <em>0</em> → estás en <em>posición perdedora</em>: cualquier movimiento que hagas dejará el XOR en distinto de 0 para tu rival.<br><br>
+          Si el Nim-Sum es <em>distinto de 0</em> → estás en <em>posición ganadora</em>: siempre existe al menos una jugada que deja el XOR en 0 para tu rival.
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">♟️ La jugada ganadora exacta</div>
+        <div class="theory-text">
+          Con Nim-Sum = <em>S ≠ 0</em>, busca un montón de tamaño <em>n</em> tal que <em>n XOR S &lt; n</em>. Reduce ese montón a exactamente <em>n XOR S</em> piedras. Tras tu movimiento el nuevo Nim-Sum será 0.
+        </div>
+        <div class="example-box">
+          <div class="ex-title">Ejemplo: montones 3 · 5 · 7, S = 1</div>
+          3 XOR 1 = 2 ✓ (2 &lt; 3)<br>
+          → Quita 1 de la fila de 3<br>
+          Nuevo estado: <em style="color:var(--ok)">2 · 5 · 7 → XOR = 0</em>
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">💡 Consejo práctico</div>
+        <div class="theory-text">
+          El panel «Estado actual» te muestra el Nim-Sum y si estás en posición ganadora o perdedora en tiempo real. Activa la <em>IA aleatoria</em> para practicar sin que te aplaste; activa la <em>IA óptima</em> para entender qué jugadas deberías hacer.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-title">📜 Historial</div>
+      <div class="history-list" id="history-list">
+        <div class="hist-item"><span class="hist-txt" style="color:var(--gold-dark)">Sin movimientos aún…</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="win-overlay" id="win-overlay">
+  <div class="win-box">
+    <span class="win-trophy" id="win-trophy">🏆</span>
+    <div class="win-title" id="win-title">¡Victoria!</div>
+    <div class="win-sub" id="win-sub"></div>
+    <button class="win-btn" onclick="newGame()">Nueva Partida</button>
+  </div>
+</div>
+
+<script>
+const PRESETS = {
+  classic: [1,3,5,7], small: [1,2,3], medium: [3,4,5,6], large: [2,4,6,8], random: null,
+};
+
+let piles=[], origPiles=[], selectedRow=-1, selectedCount=0;
+let playerTurn=true, gameOver=false;
+let scoreP=0, scoreAI=0, scoreGames=0;
+
+const presetSel = document.getElementById('preset-select');
+const firstSel  = document.getElementById('first-select');
+const aiSel     = document.getElementById('ai-select');
+const board     = document.getElementById('nim-board');
+const msgEl     = document.getElementById('msg');
+const btnTake   = document.getElementById('btn-take');
+const histList  = document.getElementById('history-list');
+const hintBox   = document.getElementById('ai-hint');
+
+function getPreset(){
+  const key = presetSel.value;
+  if(key==='random'){
+    const n=3+Math.floor(Math.random()*3);
+    return Array.from({length:n},()=>1+Math.floor(Math.random()*8));
+  }
+  return [...PRESETS[key]];
+}
+
+function newGame(){
+  piles=getPreset(); origPiles=[...piles];
+  selectedRow=-1; selectedCount=0; gameOver=false;
+  scoreGames++;
+  document.getElementById('score-games').textContent=scoreGames;
+  document.getElementById('win-overlay').classList.remove('show');
+  hintBox.style.display='none';
+  playerTurn=(firstSel.value==='player');
+  renderBoard(); updateTurnUI(); updateAnalysis(); resetHistory();
+  btnTake.disabled=true;
+  if(!playerTurn){
+    setMsg('La IA abre la partida…','info');
+    setTimeout(aiMove,900);
+  } else {
+    setMsg('Selecciona piedras de una fila y pulsa Tomar','info');
+  }
+}
+
+function renderBoard(){
+  board.innerHTML='';
+  piles.forEach((count,rowIdx)=>{
+    const rowTotal=origPiles[rowIdx];
+    const wrap=document.createElement('div'); wrap.className='row-container';
+    const lbl=document.createElement('div'); lbl.className='row-label'; lbl.textContent=rowIdx+1;
+    wrap.appendChild(lbl);
+    const stonesDiv=document.createElement('div'); stonesDiv.className='row-stones';
+    for(let i=0;i<rowTotal;i++){
+      const s=document.createElement('div'); s.className='stone';
+      if(i>=count){
+        s.classList.add('removed');
+      } else {
+        if(selectedRow===rowIdx){
+          const selStart=count-selectedCount;
+          if(i>=selStart) s.classList.add('selected');
+        }
+        s.addEventListener('click',()=>onStoneClick(rowIdx,i,count));
+      }
+      stonesDiv.appendChild(s);
+    }
+    wrap.appendChild(stonesDiv);
+    const cnt=document.createElement('div'); cnt.className='row-count'; cnt.textContent=`×${count}`;
+    wrap.appendChild(cnt);
+    board.appendChild(wrap);
+  });
+}
+
+function onStoneClick(rowIdx,stoneIdx,rowCount){
+  if(!playerTurn||gameOver) return;
+  if(stoneIdx>=rowCount) return;
+  if(selectedRow!==rowIdx){selectedRow=rowIdx;selectedCount=0;}
+  const newSel=rowCount-stoneIdx;
+  selectedCount=(selectedCount===newSel)?0:newSel;
+  if(selectedCount===0) selectedRow=-1;
+  btnTake.disabled=(selectedCount===0);
+  renderBoard();
+}
+
+function takeStones(rowIdx,count,who){
+  piles[rowIdx]-=count;
+  addHistory(who,rowIdx+1,count);
+  renderBoard(); updateAnalysis();
+}
+
+document.getElementById('btn-take').addEventListener('click',()=>{
+  if(!playerTurn||gameOver||selectedCount===0||selectedRow<0) return;
+  takeStones(selectedRow,selectedCount,'p');
+  selectedRow=-1; selectedCount=0; btnTake.disabled=true;
+  if(checkWin('p')) return;
+  playerTurn=false; updateTurnUI();
+  setMsg('La IA está pensando…','info');
+  setTimeout(aiMove,700);
+});
+
+function nimSum(arr){return (arr||piles).reduce((acc,v)=>acc^v,0);}
+
+function aiMove(){
+  if(gameOver) return;
+  let move=(aiSel.value==='optimal')?findOptimalMove():findRandomMove();
+  if(!move) move=findRandomMove();
+  if(!move){endGame('p');return;}
+  takeStones(move.row,move.take,'c');
+  if(checkWin('c')) return;
+  playerTurn=true; updateTurnUI();
+  setMsg('Tu turno — selecciona piedras de una fila','info');
+}
+
+function findOptimalMove(){
+  const S=nimSum();
+  if(S===0) return null;
+  for(let i=0;i<piles.length;i++){
+    const target=piles[i]^S;
+    if(target<piles[i]) return{row:i,take:piles[i]-target};
+  }
+  return null;
+}
+
+function findRandomMove(){
+  const nonEmpty=piles.map((p,i)=>({p,i})).filter(x=>x.p>0);
+  if(!nonEmpty.length) return null;
+  const pick=nonEmpty[Math.floor(Math.random()*nonEmpty.length)];
+  return{row:pick.i,take:1+Math.floor(Math.random()*pick.p)};
+}
+
+function checkWin(who){
+  if(piles.reduce((a,b)=>a+b,0)===0){endGame(who);return true;}
+  return false;
+}
+
+function endGame(winner){
+  gameOver=true; btnTake.disabled=true; hintBox.style.display='none';
+  const overlay=document.getElementById('win-overlay');
+  const trophy=document.getElementById('win-trophy');
+  const title=document.getElementById('win-title');
+  const sub=document.getElementById('win-sub');
+  if(winner==='p'){
+    scoreP++; document.getElementById('score-p').textContent=scoreP;
+    trophy.textContent='🏆'; title.textContent='¡Victoria!';
+    sub.innerHTML=`Has ganado esta partida<br>Nim-Sum final: <strong>0</strong>`;
+    setMsg('¡Has ganado! 🎉','win');
+  } else {
+    scoreAI++; document.getElementById('score-ai').textContent=scoreAI;
+    trophy.textContent='🤖'; title.textContent='Victoria IA';
+    sub.innerHTML=`La IA ha ganado esta partida<br>¡Intenta de nuevo!`;
+    setMsg('La IA ha ganado. ¡Inténtalo otra vez!','err');
+  }
+  spawnParticles(winner==='p');
+  setTimeout(()=>overlay.classList.add('show'),400);
+  updateAnalysis();
+}
+
+function updateTurnUI(){
+  const tpCard=document.getElementById('turn-p');
+  const taiCard=document.getElementById('turn-ai');
+  const tpScore=document.getElementById('tp-score');
+  const taiScore=document.getElementById('tai-score');
+  tpCard.classList.remove('active-turn','enemy');
+  taiCard.classList.remove('active-turn','enemy');
+  if(gameOver){tpScore.textContent='·';taiScore.textContent='·';return;}
+  if(playerTurn){
+    tpCard.classList.add('active-turn');
+    tpScore.textContent='→'; taiScore.textContent='·';
+  } else {
+    taiCard.classList.add('active-turn','enemy');
+    tpScore.textContent='·'; taiScore.textContent='→';
+  }
+}
+
+function setMsg(text,cls){msgEl.textContent=text;msgEl.className='message '+(cls||'');}
+
+function updateAnalysis(){
+  const S=nimSum();
+  const total=piles.reduce((a,b)=>a+b,0);
+  const isP=(S===0);
+  document.getElementById('nv-xor').textContent=S;
+  document.getElementById('nv-pos').textContent=isP?'P-pos: quien mueve pierde':'N-pos: quien mueve gana';
+  document.getElementById('nv-pos').className='nv-val '+(isP?'zero':'nonzero');
+  document.getElementById('nv-state').textContent=total===0?'Fin':(playerTurn?'Tu turno':'Turno IA');
+  document.getElementById('nim-formula-display').textContent=piles.join(' ⊕ ')+' = '+S;
+  if(playerTurn&&!gameOver&&total>0){
+    const opt=findOptimalMove();
+    hintBox.style.display='block';
+    if(opt){
+      const target=piles[opt.row]-opt.take;
+      hintBox.innerHTML=`💡 Jugada óptima: quita <em>${opt.take}</em> de la fila <em>${opt.row+1}</em> (dejar ${target}). Nim-Sum → <em>0</em>.`;
+    } else {
+      hintBox.innerHTML=`⚠️ Estás en <em>P-position</em>: no hay jugada ganadora garantizada. Si el rival juega perfecto, perderás.`;
+    }
+  } else {
+    hintBox.style.display='none';
+  }
+}
+
+function addHistory(who,row,count){
+  if(histList.children.length===1&&histList.children[0].querySelector('[style]')) histList.innerHTML='';
+  const item=document.createElement('div'); item.className='hist-item';
+  const badge=document.createElement('span'); badge.className='hist-who '+who;
+  badge.textContent=who==='p'?'TÚ':'IA';
+  const txt=document.createElement('span'); txt.className='hist-txt';
+  txt.textContent=`Fila ${row}: quita ${count} piedra${count>1?'s':''}`;
+  item.appendChild(badge); item.appendChild(txt);
+  histList.insertBefore(item,histList.firstChild);
+}
+
+function resetHistory(){
+  histList.innerHTML='<div class="hist-item"><span class="hist-txt" style="color:var(--gold-dark)">Sin movimientos aún…</span></div>';
+}
+
+function spawnParticles(win){
+  for(let i=0;i<38;i++){
+    const p=document.createElement('div'); p.className='particle';
+    const colors=win?['#c9a84c','#e8c97a','#fff8c0','#8a6a2a','#f0d060']:['#606060','#404040','#808080'];
+    p.style.cssText=`width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${Math.random()*100}vw;top:${-20+Math.random()*-40}px;animation-delay:${Math.random()*0.8}s;animation-duration:${1.5+Math.random()*1.2}s;`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),3500);
+  }
+}
+
+document.getElementById('btn-new').addEventListener('click',newGame);
+presetSel.addEventListener('change',newGame);
+firstSel.addEventListener('change',newGame);
+aiSel.addEventListener('change',newGame);
+
+newGame();
+</script>
+</body>
+</html>

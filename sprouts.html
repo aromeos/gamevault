@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprouts – El Juego de los Brotes</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Cinzel:wght@400;600&display=swap');
+
+:root {
+  --gold:       #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dark:  #8a6a2a;
+  --gold-glow:  rgba(201,168,76,.4);
+  --bg:         #0e0b05;
+  --panel-bg:   linear-gradient(160deg,#3a2a0c,#1e1408);
+  --panel-b:    #7a5a1a;
+  --ok:         #60d870;
+  --err:        #e06060;
+  --hint:       #60b8e8;
+  --p1:         #e8c97a;
+  --p2:         #60b8e8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(ellipse at 15% 15%,#241806 0%,transparent 55%),
+                   radial-gradient(ellipse at 85% 85%,#160e03 0%,transparent 55%);
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  padding:16px 10px 60px; font-family:'Rajdhani',sans-serif; color:var(--gold-light);
+  user-select:none;
+}
+h1{
+  font-family:'Orbitron',monospace; font-weight:900;
+  font-size:clamp(1.4rem,4vw,2.2rem); letter-spacing:.2em; color:var(--gold-light);
+  text-shadow:0 0 30px var(--gold-glow),0 0 70px rgba(201,168,76,.15);
+  text-transform:uppercase; margin-bottom:2px;
+}
+.subtitle{
+  font-family:'Cinzel',serif; font-size:.72rem; color:var(--gold-dark);
+  letter-spacing:.3em; text-transform:uppercase; margin-bottom:16px;
+}
+.main-layout{display:flex;gap:14px;align-items:flex-start;width:100%;max-width:1160px;}
+.game-col{
+  flex:1 1 auto; min-width:0;
+  background:var(--panel-bg); border:2px solid var(--panel-b); border-radius:18px;
+  padding:14px 12px 16px;
+  box-shadow:0 0 50px rgba(201,168,76,.1),inset 0 0 40px rgba(0,0,0,.5);
+}
+.side-col{flex:0 0 290px;display:flex;flex-direction:column;gap:12px;}
+.side-panel{
+  background:var(--panel-bg); border:2px solid var(--panel-b); border-radius:18px;
+  padding:14px 13px;
+  box-shadow:0 0 40px rgba(201,168,76,.07),inset 0 0 30px rgba(0,0,0,.4);
+}
+.panel-title{
+  font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;
+  letter-spacing:.13em;color:var(--gold-light);margin-bottom:10px;
+  text-align:center;text-transform:uppercase;
+}
+.options{
+  display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:10px;
+  font-size:.73rem;color:var(--gold-dark);font-weight:600;letter-spacing:.07em;flex-wrap:wrap;
+}
+.options label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+select{
+  background:#1a1005;color:var(--gold-light);border:1px solid var(--gold-dark);
+  border-radius:5px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-size:.82rem;
+}
+.stats-bar{display:flex;justify-content:center;gap:22px;margin-bottom:10px;flex-wrap:wrap;}
+.stat-item{display:flex;flex-direction:column;align-items:center;}
+.stat-val{font-family:'Orbitron',monospace;font-size:1.05rem;font-weight:700;color:var(--gold-light);line-height:1;}
+.stat-lbl{font-size:.56rem;color:var(--gold-dark);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;}
+.message{
+  text-align:center;font-family:'Orbitron',monospace;font-size:.65rem;
+  min-height:20px;margin-bottom:8px;letter-spacing:.07em;color:var(--gold-light);transition:color .3s;
+}
+.message.win{color:var(--ok);text-shadow:0 0 14px rgba(80,220,80,.5);}
+.message.err{color:var(--err);}
+.message.info{color:var(--hint);}
+.message.p1{color:var(--p1);}
+.message.p2{color:var(--p2);}
+.turn-indicator{display:flex;justify-content:center;gap:20px;margin-bottom:10px;}
+.turn-card{
+  padding:6px 18px;border-radius:8px;text-align:center;
+  border:1px solid rgba(138,106,42,.25);background:rgba(0,0,0,.3);transition:all .3s;min-width:90px;
+}
+.turn-card.active-p1{border-color:var(--p1);background:rgba(232,201,122,.1);box-shadow:0 0 14px rgba(232,201,122,.3);}
+.turn-card.active-p2{border-color:var(--p2);background:rgba(96,184,232,.08);box-shadow:0 0 14px rgba(96,184,232,.25);}
+.turn-name{font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;}
+.turn-name.p1c{color:var(--p1);}
+.turn-name.p2c{color:var(--p2);}
+.turn-lives{font-family:'Orbitron',monospace;font-size:1rem;font-weight:900;color:var(--gold-light);}
+.canvas-wrap{
+  position:relative;width:100%;border-radius:12px;overflow:hidden;
+  background:rgba(0,0,0,.35);border:1px solid rgba(138,106,42,.22);margin-bottom:10px;
+  cursor:crosshair;
+}
+canvas{display:block;width:100%;touch-action:none;}
+.controls{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;}
+button{
+  font-family:'Orbitron',monospace;font-size:.58rem;font-weight:700;
+  letter-spacing:.08em;padding:8px 14px;border-radius:7px;
+  border:none;cursor:pointer;text-transform:uppercase;transition:all .2s;
+}
+#btn-new{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#1a1005;box-shadow:0 3px 12px rgba(201,168,76,.3);}
+#btn-new:hover{box-shadow:0 3px 22px rgba(201,168,76,.55);transform:translateY(-1px);}
+#btn-undo{background:rgba(255,255,255,.06);color:var(--gold-dark);border:1px solid var(--gold-dark);}
+#btn-undo:hover:not(:disabled){background:rgba(255,255,255,.13);color:var(--gold-light);}
+#btn-undo:disabled{opacity:.3;cursor:not-allowed;}
+/* THEORY */
+.theory-block{margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(138,106,42,.18);}
+.theory-block:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+.theory-title{font-family:'Orbitron',monospace;font-size:.56rem;color:var(--gold);letter-spacing:.1em;margin-bottom:6px;text-transform:uppercase;}
+.theory-text{font-size:.72rem;color:rgba(200,180,120,.85);line-height:1.65;}
+.theory-text em{color:var(--gold-light);font-style:normal;}
+.bounds-display{
+  background:rgba(0,0,0,.4);border:1px solid rgba(96,184,232,.22);
+  border-radius:8px;padding:9px 11px;
+}
+.bounds-row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:.69rem;}
+.bounds-row:last-child{margin-bottom:0;}
+.bv-lbl{color:var(--gold-dark);}
+.bv-val{font-family:'Orbitron',monospace;font-weight:700;color:var(--gold-light);}
+.bv-val.accent{color:var(--hint);}
+/* WIN */
+.win-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .5s;}
+.win-overlay.show{opacity:1;pointer-events:all;}
+.win-box{background:linear-gradient(160deg,#3d2c0e,#251a06);border:2px solid var(--gold);border-radius:20px;padding:30px 44px;text-align:center;max-width:360px;box-shadow:0 0 70px var(--gold-glow);}
+.win-trophy{font-size:3rem;display:block;margin-bottom:10px;animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+.win-title{font-family:'Orbitron',monospace;font-weight:900;font-size:1.3rem;color:var(--gold-light);text-shadow:0 0 20px var(--gold-glow);margin-bottom:6px;}
+.win-sub{font-size:.82rem;color:var(--gold-dark);margin-bottom:18px;line-height:1.8;}
+.win-sub strong{color:var(--gold-light);}
+.win-btn{font-family:'Orbitron',monospace;font-size:.68rem;font-weight:700;padding:11px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#1a1005;cursor:pointer;letter-spacing:.1em;box-shadow:0 4px 18px rgba(201,168,76,.35);transition:all .2s;}
+.win-btn:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(201,168,76,.5);}
+.particle{position:fixed;pointer-events:none;z-index:99;border-radius:50%;animation:pfall 1.9s ease-in forwards;}
+@keyframes pfall{0%{transform:translateY(-30px) rotate(0deg);opacity:1;}100%{transform:translateY(105vh) rotate(720deg);opacity:0;}}
+/* PHASE INDICATOR */
+.phase-badge{
+  display:inline-block;padding:3px 10px;border-radius:5px;font-family:'Orbitron',monospace;
+  font-size:.55rem;letter-spacing:.08em;text-transform:uppercase;margin-left:6px;vertical-align:middle;
+}
+.phase-select{background:rgba(201,168,76,.15);border:1px solid var(--gold-dark);color:var(--gold);}
+.phase-draw{background:rgba(96,184,232,.12);border:1px solid rgba(96,184,232,.4);color:var(--hint);}
+
+@media(max-width:820px){
+  .main-layout{flex-direction:column;align-items:center;}
+  .side-col{flex:none;width:100%;max-width:480px;flex-direction:row;flex-wrap:wrap;}
+  .side-panel{flex:1 1 210px;}
+}
+</style>
+</head>
+<body>
+
+<h1>Sprouts</h1>
+<div class="subtitle">El Juego de los Brotes · Topología Combinatoria</div>
+
+<div class="main-layout">
+
+  <div class="game-col">
+    <div class="options">
+      <label>Puntos iniciales
+        <select id="n-select">
+          <option value="2">2 puntos</option>
+          <option value="3" selected>3 puntos</option>
+          <option value="4">4 puntos</option>
+          <option value="5">5 puntos</option>
+          <option value="6">6 puntos</option>
+        </select>
+      </label>
+      <label>Modo
+        <select id="mode-select">
+          <option value="2p">2 jugadores</option>
+          <option value="vs">vs IA</option>
+        </select>
+      </label>
+      <label>Misère
+        <select id="misere-select">
+          <option value="normal">Normal (último mueve: gana)</option>
+          <option value="misere">Misère (último mueve: pierde)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-item"><span class="stat-val" id="stat-p1w">0</span><span class="stat-lbl">J1 Victorias</span></div>
+      <div class="stat-item"><span class="stat-val" id="stat-games">0</span><span class="stat-lbl">Partidas</span></div>
+      <div class="stat-item"><span class="stat-val" id="stat-p2w">0</span><span class="stat-lbl">J2 Victorias</span></div>
+    </div>
+
+    <div class="turn-indicator">
+      <div class="turn-card" id="tc-p1">
+        <div class="turn-name p1c">Jugador 1</div>
+        <div class="turn-lives" id="tl-p1">—</div>
+      </div>
+      <div class="turn-card" id="tc-p2">
+        <div class="turn-name p2c" id="tn-p2">Jugador 2</div>
+        <div class="turn-lives" id="tl-p2">—</div>
+      </div>
+    </div>
+
+    <div class="message info" id="msg">Selecciona un punto de origen</div>
+
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="gc"></canvas>
+    </div>
+
+    <div class="controls">
+      <button id="btn-new">↺ Nueva partida</button>
+      <button id="btn-undo" disabled>↩ Deshacer</button>
+    </div>
+  </div>
+
+  <div class="side-col">
+
+    <div class="side-panel">
+      <div class="panel-title">📊 Info partida</div>
+      <div class="bounds-display">
+        <div class="bounds-row"><span class="bv-lbl">Puntos vivos:</span><span class="bv-val accent" id="info-alive">—</span></div>
+        <div class="bounds-row"><span class="bv-lbl">Movimientos hechos:</span><span class="bv-val" id="info-moves">0</span></div>
+        <div class="bounds-row"><span class="bv-lbl">Movimientos máx.:</span><span class="bv-val" id="info-max">—</span></div>
+        <div class="bounds-row"><span class="bv-lbl">Turno:</span><span class="bv-val accent" id="info-turn">—</span></div>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-title">📖 Cómo se juega</div>
+
+      <div class="theory-block">
+        <div class="theory-title">🎯 Objetivo</div>
+        <div class="theory-text">
+          Se alternan turnos. En cada turno debes dibujar una <em>curva</em> que conecte dos puntos vivos (o un punto consigo mismo) y colocar un <em>nuevo punto</em> en esa curva. La curva no puede cruzar ninguna otra curva ni pasar por un punto muerto. <em>Quien no puede mover, pierde</em> (en modo Normal).
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">💀 Puntos vivos y muertos</div>
+        <div class="theory-text">
+          Cada punto tiene un límite de <em>3 conexiones</em>. Cuando un punto ya tiene 3 conexiones (o 2 si es el punto de nueva creación que conecta consigo mismo), queda <em>muerto</em> y aparece con un aspa. No se puede conectar a puntos muertos.
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">🖱️ Cómo dibujar</div>
+        <div class="theory-text">
+          <em>1.</em> Haz clic en el punto de origen (se ilumina).<br>
+          <em>2.</em> Arrastra o haz clic y mueve el ratón para trazar la curva libremente.<br>
+          <em>3.</em> Termina en el punto destino (el mismo u otro punto vivo).<br>
+          Si la curva cruza otra línea o un punto, se cancela automáticamente.
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">🔢 Cuántos movimientos habrá</div>
+        <div class="theory-text">
+          Con <em>n</em> puntos iniciales, el número de movimientos siempre está entre <em>2n−1</em> y <em>3n−1</em>. Esto permite predecir quién gana con juego perfecto para cada <em>n</em>.
+        </div>
+      </div>
+
+      <div class="theory-block">
+        <div class="theory-title">🧠 Estrategia</div>
+        <div class="theory-text">
+          La paridad del número de movimientos es clave. Si el total de movimientos es <em>impar</em>, gana el Jugador 1 (con juego perfecto). Si es <em>par</em>, gana el Jugador 2. La dificultad está en <em>controlar la topología</em> del grafo para forzar el resultado deseado.
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div class="win-overlay" id="win-overlay">
+  <div class="win-box">
+    <span class="win-trophy" id="win-trophy">🏆</span>
+    <div class="win-title" id="win-title">¡Victoria!</div>
+    <div class="win-sub" id="win-sub"></div>
+    <button class="win-btn" onclick="newGame()">Nueva Partida</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+//  SPROUTS GAME ENGINE
+// ─────────────────────────────────────────────────────────────────
+
+const canvas = document.getElementById('gc');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvas-wrap');
+
+const POINT_R     = 10;   // click radius for point detection
+const POINT_DRAW  = 7;    // visual radius
+const MIN_DIST    = 18;   // min distance between new point and existing points
+const CROSS_CHECK = 8;    // segments per curve for collision
+const MAX_LIVES   = 3;    // max connections per point
+
+// ── STATE ──────────────────────────────────────────────────────────
+let points   = [];   // {x, y, lives, id}
+let curves   = [];   // {pts: [{x,y},...], from, to, player}
+let turn     = 1;    // 1 or 2
+let phase    = 'select'; // 'select' | 'draw'
+let selPoint = -1;
+let drawPath = [];
+let gameOver = false;
+let moveCount = 0;
+let history  = [];  // snapshots for undo
+let scoreP1  = 0, scoreP2 = 0, scoreGames = 0;
+let mousePos = {x:0, y:0};
+let N = 3;
+
+const nSel      = document.getElementById('n-select');
+const modeSel   = document.getElementById('mode-select');
+const misereSel = document.getElementById('misere-select');
+const msgEl     = document.getElementById('msg');
+const btnUndo   = document.getElementById('btn-undo');
+
+// ── RESIZE ─────────────────────────────────────────────────────────
+function resizeCanvas() {
+  const w = wrap.clientWidth;
+  const h = Math.max(380, Math.min(560, w * 0.72));
+  canvas.width  = w;
+  canvas.height = h;
+  render();
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+function newGame() {
+  N = parseInt(nSel.value);
+  points = []; curves = []; drawPath = [];
+  turn = 1; phase = 'select'; selPoint = -1;
+  gameOver = false; moveCount = 0; history = [];
+  scoreGames++;
+  document.getElementById('stat-games').textContent = scoreGames;
+  document.getElementById('win-overlay').classList.remove('show');
+  btnUndo.disabled = true;
+
+  // Place initial points in a nice layout
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const r  = Math.min(canvas.width, canvas.height) * 0.3;
+  for (let i = 0; i < N; i++) {
+    const angle = (2 * Math.PI * i / N) - Math.PI / 2;
+    points.push({
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+      lives: 0,
+      id: i,
+    });
+  }
+
+  updateInfo();
+  updateTurnUI();
+  setMsg('Haz clic en un punto de origen', 'p1');
+  render();
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background grid dots
+  ctx.fillStyle = 'rgba(138,106,42,0.06)';
+  for (let x = 20; x < canvas.width; x += 30) {
+    for (let y = 20; y < canvas.height; y += 30) {
+      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Draw curves
+  curves.forEach(c => {
+    drawCurve(c.pts, c.player === 1 ? 'rgba(232,201,122,0.75)' : 'rgba(96,184,232,0.75)', 2.5);
+  });
+
+  // Active drawing path
+  if (phase === 'draw' && drawPath.length > 1) {
+    drawCurve(drawPath, turn === 1 ? 'rgba(232,201,122,0.45)' : 'rgba(96,184,232,0.45)', 2, true);
+    // Line from last point to mouse
+    const last = drawPath[drawPath.length - 1];
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(mousePos.x, mousePos.y);
+    ctx.strokeStyle = turn === 1 ? 'rgba(232,201,122,0.25)' : 'rgba(96,184,232,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Draw points
+  points.forEach((p, i) => {
+    const dead = p.lives >= MAX_LIVES;
+    const sel  = i === selPoint;
+
+    // Glow for selected
+    if (sel) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, POINT_DRAW + 8, 0, Math.PI*2);
+      ctx.fillStyle = turn === 1 ? 'rgba(232,201,122,0.18)' : 'rgba(96,184,232,0.18)';
+      ctx.fill();
+    }
+
+    // Hover highlight for valid points
+    if (!dead && !gameOver && phase !== 'select' || !dead && !gameOver && phase === 'select') {
+      const dist = Math.hypot(mousePos.x - p.x, mousePos.y - p.y);
+      if (dist < POINT_R * 2 && !dead) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, POINT_DRAW + 5, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,200,0.1)';
+        ctx.fill();
+      }
+    }
+
+    // Point circle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, POINT_DRAW, 0, Math.PI*2);
+    if (dead) {
+      ctx.fillStyle = 'rgba(80,60,20,0.8)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(138,106,42,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // X mark
+      const s = 4;
+      ctx.beginPath();
+      ctx.moveTo(p.x-s, p.y-s); ctx.lineTo(p.x+s, p.y+s);
+      ctx.moveTo(p.x+s, p.y-s); ctx.lineTo(p.x-s, p.y+s);
+      ctx.strokeStyle = 'rgba(138,106,42,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      const grad = ctx.createRadialGradient(p.x-2, p.y-2, 1, p.x, p.y, POINT_DRAW);
+      if (sel) {
+        grad.addColorStop(0, turn === 1 ? '#fffae0' : '#e0f4ff');
+        grad.addColorStop(1, turn === 1 ? '#c9a84c' : '#3a8aaa');
+      } else {
+        grad.addColorStop(0, '#e8c97a');
+        grad.addColorStop(1, '#7a5a1a');
+      }
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = sel
+        ? (turn === 1 ? '#fff0a0' : '#a0d8f0')
+        : 'rgba(201,168,76,0.8)';
+      ctx.lineWidth = sel ? 2.5 : 1.5;
+      ctx.stroke();
+
+      // Lives indicator (small dots below)
+      const livesLeft = MAX_LIVES - p.lives;
+      for (let d = 0; d < livesLeft; d++) {
+        const dx = (d - (livesLeft-1)/2) * 5;
+        ctx.beginPath();
+        ctx.arc(p.x + dx, p.y + POINT_DRAW + 5, 2, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(201,168,76,0.6)';
+        ctx.fill();
+      }
+
+      // Point ID
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.font = `bold ${POINT_DRAW - 1}px Orbitron, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i + 1, p.x, p.y);
+    }
+  });
+}
+
+function drawCurve(pts, color, width, dashed) {
+  if (pts.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i].x + pts[i+1].x) / 2;
+    const my = (pts[i].y + pts[i+1].y) / 2;
+    ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+  }
+  ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (dashed) ctx.setLineDash([5, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ── INPUT ──────────────────────────────────────────────────────────
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: (src.clientX - rect.left) * scaleX,
+    y: (src.clientY - rect.top)  * scaleY,
+  };
+}
+
+function findPoint(x, y, excludeIdx) {
+  for (let i = 0; i < points.length; i++) {
+    if (i === excludeIdx) continue;
+    const p = points[i];
+    if (p.lives >= MAX_LIVES) continue;
+    if (Math.hypot(x - p.x, y - p.y) < POINT_R * 1.8) return i;
+  }
+  return -1;
+}
+
+function findPointLoose(x, y) {
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (Math.hypot(x - p.x, y - p.y) < POINT_R * 1.8) return i;
+  }
+  return -1;
+}
+
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('mouseup',   onUp);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e); }, {passive:false});
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e); }, {passive:false});
+canvas.addEventListener('touchend',   e => { e.preventDefault(); onUp(e);   }, {passive:false});
+
+let isDrawing = false;
+
+function onDown(e) {
+  if (gameOver) return;
+  const pos = getCanvasPos(e);
+  mousePos = pos;
+
+  if (phase === 'select') {
+    const pi = findPoint(pos.x, pos.y, -1);
+    if (pi >= 0) {
+      selPoint = pi;
+      phase = 'draw';
+      drawPath = [{x: points[pi].x, y: points[pi].y}];
+      isDrawing = true;
+      setMsg('Dibuja hacia el punto destino', turn === 1 ? 'p1' : 'p2');
+    }
+  } else if (phase === 'draw') {
+    // clicking again on another point while not dragging: commit
+  }
+  render();
+}
+
+function onMove(e) {
+  if (gameOver) return;
+  const pos = getCanvasPos(e);
+  mousePos = pos;
+
+  if (isDrawing && phase === 'draw') {
+    const last = drawPath[drawPath.length - 1];
+    const d = Math.hypot(pos.x - last.x, pos.y - last.y);
+    if (d > 6) {
+      drawPath.push({x: pos.x, y: pos.y});
+      // Check if path crosses existing curves or points
+      if (pathHasCollision()) {
+        cancelDraw('¡La curva se cruza! Intenta otro camino');
+        return;
+      }
+    }
+  }
+  render();
+}
+
+function onUp(e) {
+  if (gameOver || !isDrawing) return;
+  isDrawing = false;
+  if (phase !== 'draw') return;
+  const pos = mousePos;
+
+  // Find destination point (can be same as origin for loop)
+  let destIdx = -1;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (p.lives >= MAX_LIVES) continue;
+    if (Math.hypot(pos.x - p.x, pos.y - p.y) < POINT_R * 2.2) {
+      destIdx = i;
+      break;
+    }
+  }
+
+  if (destIdx < 0) {
+    cancelDraw('Termina en un punto válido');
+    return;
+  }
+
+  // Validate: self-loop needs lives >= 1 free (will use 2), other needs both alive
+  const src = points[selPoint];
+  const dst = points[destIdx];
+
+  if (selPoint === destIdx) {
+    // Self-loop: costs 2 lives from same point
+    if (src.lives + 2 > MAX_LIVES) {
+      cancelDraw('Este punto no tiene vidas suficientes para un bucle');
+      return;
+    }
+  } else {
+    if (src.lives + 1 > MAX_LIVES || dst.lives + 1 > MAX_LIVES) {
+      cancelDraw('Uno de los puntos no tiene vidas suficientes');
+      return;
+    }
+  }
+
+  // Must have minimum path length
+  if (drawPath.length < 3) {
+    cancelDraw('Dibuja una curva más larga');
+    return;
+  }
+
+  // Extend path to destination
+  drawPath.push({x: dst.x, y: dst.y});
+
+  // Final collision check
+  if (pathHasCollision()) {
+    cancelDraw('¡La curva se cruza!');
+    return;
+  }
+
+  commitMove(selPoint, destIdx);
+}
+
+// ── COLLISION ──────────────────────────────────────────────────────
+function segmentsIntersect(p1,p2,p3,p4){
+  const d1 = {x:p2.x-p1.x, y:p2.y-p1.y};
+  const d2 = {x:p4.x-p3.x, y:p4.y-p3.y};
+  const cross = d1.x*d2.y - d1.y*d2.x;
+  if (Math.abs(cross) < 1e-10) return false;
+  const t = ((p3.x-p1.x)*d2.y - (p3.y-p1.y)*d2.x) / cross;
+  const u = ((p3.x-p1.x)*d1.y - (p3.y-p1.y)*d1.x) / cross;
+  return t>0.05 && t<0.95 && u>0.05 && u<0.95;
+}
+
+function pathSampled(pts, n) {
+  const result = [];
+  const step = Math.max(1, Math.floor(pts.length / n));
+  for (let i = 0; i < pts.length - 1; i += step) {
+    result.push({a: pts[i], b: pts[Math.min(i+step, pts.length-1)]});
+  }
+  return result;
+}
+
+function pathHasCollision() {
+  const newSegs = pathSampled(drawPath, 30);
+
+  // Check against existing curves
+  for (const c of curves) {
+    const existSegs = pathSampled(c.pts, 30);
+    for (const ns of newSegs) {
+      for (const es of existSegs) {
+        if (segmentsIntersect(ns.a, ns.b, es.a, es.b)) return true;
+      }
+    }
+  }
+
+  // Check new path against itself (large loops crossing)
+  for (let i = 0; i < newSegs.length; i++) {
+    for (let j = i + 3; j < newSegs.length; j++) {
+      if (segmentsIntersect(newSegs[i].a, newSegs[i].b, newSegs[j].a, newSegs[j].b)) return true;
+    }
+  }
+
+  // Check new path passes through dead points or invalid areas
+  for (const pt of drawPath) {
+    for (let pi = 0; pi < points.length; pi++) {
+      if (pi === selPoint) continue;
+      const p = points[pi];
+      const d = Math.hypot(pt.x - p.x, pt.y - p.y);
+      // Path must not pass through dead points (or live points that aren't start/end)
+      if (p.lives >= MAX_LIVES && d < POINT_DRAW + 3) return true;
+    }
+  }
+
+  // Check intermediate points of path don't land on live points (except endpoints)
+  for (let i = 3; i < drawPath.length - 3; i++) {
+    const pt = drawPath[i];
+    for (let pi = 0; pi < points.length; pi++) {
+      if (pi === selPoint) continue;
+      const p = points[pi];
+      if (Math.hypot(pt.x - p.x, pt.y - p.y) < POINT_DRAW + 2) return true;
+    }
+  }
+
+  return false;
+}
+
+// ── COMMIT MOVE ────────────────────────────────────────────────────
+function commitMove(fromIdx, toIdx) {
+  // Save snapshot for undo
+  history.push(snapshot());
+
+  // Find midpoint of path for new point
+  const mid = Math.floor(drawPath.length / 2);
+  let newX = drawPath[mid].x, newY = drawPath[mid].y;
+
+  // Nudge new point away from exact path if too close to existing
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let tooClose = false;
+    for (const p of points) {
+      if (Math.hypot(newX - p.x, newY - p.y) < MIN_DIST) { tooClose = true; break; }
+    }
+    if (!tooClose) break;
+    const mi2 = Math.floor(drawPath.length * (0.4 + attempt * 0.05));
+    newX = drawPath[mi2].x; newY = drawPath[mi2].y;
+  }
+
+  const newId = points.length;
+  const newPoint = { x: newX, y: newY, lives: 0, id: newId };
+
+  // Cost lives
+  points[fromIdx].lives += 1;
+  points[toIdx].lives   += 1;
+  if (fromIdx === toIdx) {
+    // self-loop costs 2 from same point, but we already added 1 twice
+    // actually we need 2 more: reset and add 2
+    // We did +1 twice (from and to are same), so it's +2. Correct.
+  }
+  newPoint.lives = 2; // new point is already connected to both sides of the curve = 2 lives used
+
+  points.push(newPoint);
+  curves.push({ pts: [...drawPath], from: fromIdx, to: toIdx, player: turn });
+
+  moveCount++;
+
+  // Check game over
+  const alive = points.filter(p => p.lives < MAX_LIVES);
+  const canMove = alive.length > 0 && hasValidMove();
+
+  // Reset drawing state
+  drawPath = []; selPoint = -1; phase = 'select';
+
+  if (!canMove) {
+    // Current player can't move
+    const misere = misereSel.value === 'misere';
+    // In normal: current player (who just moved) wins (other player can't move)
+    // In misère: current player who can't move loses... but it's the NEXT player who can't move
+    // The NEXT player is the one who faces no moves
+    const nextPlayer = turn === 1 ? 2 : 1;
+    let winner;
+    if (!misere) {
+      winner = turn; // current player made the last move = wins
+    } else {
+      winner = turn; // current player made the last move = loses in misère
+      // Actually in misère the last person to MOVE loses
+      winner = nextPlayer; // the one who CAN'T move wins in misère
+    }
+    endGame(winner);
+  } else {
+    turn = turn === 1 ? 2 : 1;
+    updateTurnUI();
+    updateInfo();
+    btnUndo.disabled = false;
+    const pClass = turn === 1 ? 'p1' : 'p2';
+    setMsg(`Jugador ${turn}: selecciona un punto de origen`, pClass);
+
+    if (modeSel.value === 'vs' && turn === 2 && !gameOver) {
+      setMsg('La IA está pensando…', 'info');
+      setTimeout(aiMoveSimple, 600);
+    }
+  }
+
+  render();
+}
+
+function cancelDraw(reason) {
+  drawPath = []; selPoint = -1; phase = 'select'; isDrawing = false;
+  setMsg(reason || 'Movimiento inválido. Inténtalo de nuevo', 'err');
+  setTimeout(() => {
+    if (!gameOver) setMsg(`Jugador ${turn}: selecciona un punto de origen`, turn === 1 ? 'p1' : 'p2');
+  }, 1500);
+  render();
+}
+
+// ── VALID MOVE CHECK ────────────────────────────────────────────────
+function hasValidMove() {
+  const alive = points.filter(p => p.lives < MAX_LIVES);
+  return alive.length > 0;
+}
+
+// ── SNAPSHOT / UNDO ────────────────────────────────────────────────
+function snapshot() {
+  return {
+    points:    points.map(p => ({...p})),
+    curves:    curves.map(c => ({...c, pts: c.pts.map(pt => ({...pt}))})),
+    turn, moveCount,
+  };
+}
+
+function undo() {
+  if (history.length === 0) return;
+  const s = history.pop();
+  points = s.points; curves = s.curves;
+  turn = s.turn; moveCount = s.moveCount;
+  drawPath = []; selPoint = -1; phase = 'select'; gameOver = false;
+  btnUndo.disabled = history.length === 0;
+  updateTurnUI(); updateInfo();
+  setMsg(`Jugador ${turn}: selecciona un punto de origen`, turn === 1 ? 'p1' : 'p2');
+  render();
+}
+
+// ── AI (simple: random valid move) ─────────────────────────────────
+function aiMoveSimple() {
+  if (gameOver || turn !== 2) return;
+
+  const alive = points.filter(p => p.lives < MAX_LIVES);
+  if (alive.length === 0) return;
+
+  // Try random pairs
+  const pairs = [];
+  for (let i = 0; i < alive.length; i++) {
+    for (let j = i; j < alive.length; j++) {
+      const a = alive[i], b = alive[j];
+      if (a === b && a.lives + 2 > MAX_LIVES) continue;
+      if (a !== b && (a.lives + 1 > MAX_LIVES || b.lives + 1 > MAX_LIVES)) continue;
+      pairs.push([alive[i].id, alive[j].id]);
+    }
+  }
+  if (pairs.length === 0) { endGame(1); return; }
+
+  // Pick a random pair and draw a curved path between them
+  const [ai, bi] = pairs[Math.floor(Math.random() * pairs.length)];
+  const pa = points[ai], pb = points[bi];
+
+  let path;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    path = buildAIPath(pa, pb, attempt);
+    selPoint = ai;
+    drawPath = path;
+    if (!pathHasCollision()) break;
+    path = null;
+  }
+  drawPath = []; selPoint = -1;
+  if (!path) {
+    // No valid move found for this pair, end game
+    endGame(1);
+    return;
+  }
+  // Simulate the move
+  selPoint = ai;
+  drawPath = path;
+  commitMove(ai, bi);
+}
+
+function buildAIPath(pa, pb, attempt) {
+  const pts = [];
+  const steps = 16;
+  // Add random offset to midpoint to create varied curves
+  const offX = (Math.random() - 0.5) * 80 * (1 + attempt * 0.3);
+  const offY = (Math.random() - 0.5) * 80 * (1 + attempt * 0.3);
+  const midX = (pa.x + pb.x) / 2 + offX;
+  const midY = (pa.y + pb.y) / 2 + offY;
+
+  // Clamp to canvas
+  const cmx = Math.max(15, Math.min(canvas.width  - 15, midX));
+  const cmy = Math.max(15, Math.min(canvas.height - 15, midY));
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = (1-t)*(1-t)*pa.x + 2*(1-t)*t*cmx + t*t*pb.x;
+    const y = (1-t)*(1-t)*pa.y + 2*(1-t)*t*cmy + t*t*pb.y;
+    pts.push({x, y});
+  }
+  return pts;
+}
+
+// ── END GAME ────────────────────────────────────────────────────────
+function endGame(winner) {
+  gameOver = true;
+  const overlay = document.getElementById('win-overlay');
+  const trophy  = document.getElementById('win-trophy');
+  const title   = document.getElementById('win-title');
+  const sub     = document.getElementById('win-sub');
+
+  const wName = modeSel.value === 'vs' && winner === 2 ? 'IA' : `Jugador ${winner}`;
+
+  if (winner === 1) { scoreP1++; document.getElementById('stat-p1w').textContent = scoreP1; }
+  else              { scoreP2++; document.getElementById('stat-p2w').textContent = scoreP2; }
+
+  trophy.textContent = '🌿';
+  title.textContent  = `¡${wName} gana!`;
+  sub.innerHTML = `Partida terminada en <strong>${moveCount}</strong> movimientos<br>
+    Con ${N} puntos: entre <strong>${2*N-1}</strong> y <strong>${3*N-1}</strong> movimientos posibles`;
+
+  setMsg(`¡${wName} ha ganado! 🎉`, winner === 1 ? 'p1' : 'p2');
+  spawnParticles();
+  setTimeout(() => overlay.classList.add('show'), 500);
+  render();
+}
+
+// ── UI HELPERS ──────────────────────────────────────────────────────
+function updateTurnUI() {
+  const tc1 = document.getElementById('tc-p1');
+  const tc2 = document.getElementById('tc-p2');
+  tc1.classList.remove('active-p1','active-p2');
+  tc2.classList.remove('active-p1','active-p2');
+  if (!gameOver) {
+    if (turn === 1) tc1.classList.add('active-p1');
+    else            tc2.classList.add('active-p2');
+  }
+  document.getElementById('tl-p1').textContent = turn === 1 && !gameOver ? '→' : '·';
+  document.getElementById('tl-p2').textContent = turn === 2 && !gameOver ? '→' : '·';
+
+  const tn2 = document.getElementById('tn-p2');
+  tn2.textContent = modeSel.value === 'vs' ? 'IA' : 'Jugador 2';
+}
+
+function setMsg(text, cls) {
+  msgEl.textContent = text;
+  msgEl.className = 'message ' + (cls || '');
+}
+
+function updateInfo() {
+  const alive = points.filter(p => p.lives < MAX_LIVES).length;
+  document.getElementById('info-alive').textContent = alive;
+  document.getElementById('info-moves').textContent = moveCount;
+  document.getElementById('info-max').textContent   = `${2*N-1} – ${3*N-1}`;
+  document.getElementById('info-turn').textContent  = gameOver ? 'Fin' : `Jugador ${turn}`;
+}
+
+function spawnParticles() {
+  for (let i = 0; i < 34; i++) {
+    const p = document.createElement('div'); p.className = 'particle';
+    const colors = ['#c9a84c','#e8c97a','#60d870','#60b8e8','#fff8c0'];
+    p.style.cssText = `width:${6+Math.random()*7}px;height:${6+Math.random()*7}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      left:${Math.random()*100}vw;top:${-20+Math.random()*-40}px;
+      animation-delay:${Math.random()*0.8}s;animation-duration:${1.5+Math.random()*1.2}s;`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 3500);
+  }
+}
+
+// ── EVENTS ──────────────────────────────────────────────────────────
+document.getElementById('btn-new').addEventListener('click', () => { resizeCanvas(); newGame(); });
+document.getElementById('btn-undo').addEventListener('click', undo);
+nSel.addEventListener('change',      () => { resizeCanvas(); newGame(); });
+modeSel.addEventListener('change',   () => { resizeCanvas(); newGame(); });
+misereSel.addEventListener('change', () => { resizeCanvas(); newGame(); });
+
+window.addEventListener('resize', () => { resizeCanvas(); });
+
+// ── START ───────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  resizeCanvas();
+  newGame();
+});
+</script>
+</body>
+</html>

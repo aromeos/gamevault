@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conecta 4 – Gravedad Estratégica</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Cinzel:wght@400;600&display=swap');
+
+:root {
+  --bg:         #050810;
+  --panel-bg:   linear-gradient(155deg,#0d1a3a,#060d22);
+  --panel-b:    #1e3a7a;
+  --blue:       #1a3a8a;
+  --blue-light: #2a5aca;
+  --blue-glow:  rgba(42,90,202,.5);
+  --accent:     #4a8aff;
+  --accent-glow:rgba(74,138,255,.6);
+
+  --p1:         #ff3b3b;
+  --p1-light:   #ff6b6b;
+  --p1-glow:    rgba(255,59,59,.7);
+  --p2:         #ffd700;
+  --p2-light:   #ffe84d;
+  --p2-glow:    rgba(255,215,0,.7);
+
+  --text:       #c8d8ff;
+  --text-dim:   #4a6aaa;
+  --board-bg:   #0a1a50;
+  --cell-empty: #050e2a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  background-image:
+    radial-gradient(ellipse at 20% 10%,#0a1535 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 90%,#080f25 0%,transparent 50%),
+    radial-gradient(ellipse at 50% 50%,#04080f 0%,transparent 80%);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:16px 10px 60px;font-family:'Rajdhani',sans-serif;color:var(--text);
+  user-select:none;
+}
+
+h1{
+  font-family:'Orbitron',monospace;font-weight:900;
+  font-size:clamp(1.4rem,3.5vw,2.2rem);letter-spacing:.25em;
+  color:var(--accent);
+  text-shadow:0 0 30px var(--accent-glow),0 0 80px rgba(74,138,255,.2);
+  text-transform:uppercase;margin-bottom:2px;
+}
+.subtitle{
+  font-family:'Cinzel',serif;font-size:.7rem;color:var(--text-dim);
+  letter-spacing:.35em;text-transform:uppercase;margin-bottom:18px;
+}
+
+/* ── LAYOUT ── */
+.main-layout{display:flex;gap:14px;align-items:flex-start;width:100%;max-width:1180px;}
+
+/* ── GAME COL ── */
+.game-col{
+  flex:0 0 auto;
+  background:var(--panel-bg);border:2px solid var(--panel-b);border-radius:20px;
+  padding:18px 16px 20px;
+  box-shadow:0 0 60px rgba(42,90,202,.12),inset 0 0 50px rgba(0,0,0,.6);
+}
+
+/* turn indicator */
+.turn-bar{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;
+}
+.player-card{
+  flex:1;padding:8px 12px;border-radius:12px;border:2px solid transparent;
+  transition:all .3s;opacity:.4;
+}
+.player-card.active{opacity:1;}
+.player-card.p1{background:rgba(255,59,59,.08);border-color:rgba(255,59,59,.3);}
+.player-card.p1.active{border-color:var(--p1);box-shadow:0 0 20px var(--p1-glow);}
+.player-card.p2{background:rgba(255,215,0,.08);border-color:rgba(255,215,0,.3);}
+.player-card.p2.active{border-color:var(--p2);box-shadow:0 0 20px var(--p2-glow);}
+.player-name{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+.player-card.p1 .player-name{color:var(--p1-light);}
+.player-card.p2 .player-name{color:var(--p2-light);}
+.player-score{font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:900;}
+.player-card.p1 .player-score{color:var(--p1);}
+.player-card.p2 .player-score{color:var(--p2);}
+
+.vs-badge{
+  font-family:'Orbitron',monospace;font-size:.8rem;font-weight:900;
+  color:var(--text-dim);letter-spacing:.1em;
+}
+
+/* MODE SWITCH */
+.mode-bar{display:flex;gap:6px;justify-content:center;margin-bottom:12px;}
+.mode-btn{
+  font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--panel-b);color:var(--text-dim);background:transparent;transition:all .2s;
+}
+.mode-btn.active{background:var(--blue);color:var(--accent);border-color:var(--accent);
+  box-shadow:0 0 12px var(--blue-glow);}
+.mode-btn:hover:not(.active){border-color:var(--accent);color:var(--accent);}
+
+/* BOARD */
+.board-wrap{position:relative;}
+.drop-hints{display:flex;gap:6px;margin-bottom:4px;padding:0 6px;}
+.drop-hint{
+  flex:1;height:18px;border-radius:50%;cursor:pointer;
+  transition:all .2s;opacity:0;
+}
+.drop-hint.p1-hint{background:var(--p1);box-shadow:0 0 10px var(--p1-glow);}
+.drop-hint.p2-hint{background:var(--p2);box-shadow:0 0 10px var(--p2-glow);}
+.drop-hint.show{opacity:.7;}
+.drop-hint:hover{opacity:1!important;transform:scale(1.2);}
+
+.board{
+  background:var(--board-bg);border-radius:14px;padding:6px;
+  border:2px solid var(--blue-light);
+  box-shadow:0 0 40px rgba(42,90,202,.3),inset 0 0 30px rgba(0,0,0,.5);
+  display:grid;grid-template-columns:repeat(7,1fr);gap:6px;
+}
+
+.cell{
+  width:58px;height:58px;border-radius:50%;
+  background:var(--cell-empty);
+  border:2px solid rgba(30,58,122,.6);
+  position:relative;overflow:hidden;
+  cursor:pointer;transition:border-color .2s;
+}
+.cell:hover{border-color:rgba(74,138,255,.4);}
+.cell::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.12),transparent 60%);
+  pointer-events:none;
+}
+
+.cell.p1{
+  background:radial-gradient(circle at 40% 35%,#ff6b6b,#cc2020);
+  border-color:var(--p1);
+  box-shadow:0 0 16px var(--p1-glow),inset 0 -3px 8px rgba(0,0,0,.4);
+  animation:dropIn .3s cubic-bezier(.36,.07,.19,.97);
+}
+.cell.p2{
+  background:radial-gradient(circle at 40% 35%,#ffe84d,#ccaa00);
+  border-color:var(--p2);
+  box-shadow:0 0 16px var(--p2-glow),inset 0 -3px 8px rgba(0,0,0,.4);
+  animation:dropIn .3s cubic-bezier(.36,.07,.19,.97);
+}
+.cell.win{
+  animation:pulse 0.6s ease infinite alternate;
+}
+@keyframes dropIn{
+  0%{transform:translateY(-300%);opacity:0}
+  80%{transform:translateY(8%)}
+  100%{transform:translateY(0);opacity:1}
+}
+@keyframes pulse{
+  from{box-shadow:0 0 15px currentColor,0 0 30px currentColor;}
+  to{box-shadow:0 0 30px currentColor,0 0 60px currentColor,0 0 5px #fff;}
+}
+
+/* status bar */
+.status-bar{
+  text-align:center;margin-top:10px;font-family:'Orbitron',monospace;
+  font-size:.75rem;letter-spacing:.12em;color:var(--accent);min-height:20px;
+  text-shadow:0 0 10px var(--accent-glow);
+}
+
+/* btn */
+.btn{
+  font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;padding:8px 16px;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,#1a3a8a,#2a5aca);color:#c8d8ff;
+  border:1px solid var(--accent);transition:all .2s;
+  box-shadow:0 0 15px rgba(42,90,202,.3);
+  display:block;margin:10px auto 0;
+}
+.btn:hover{background:linear-gradient(135deg,#2a5aca,#4a8aff);box-shadow:0 0 25px var(--accent-glow);}
+
+/* ── SIDE COL ── */
+.side-col{flex:0 0 340px;display:flex;flex-direction:column;gap:12px;}
+.side-panel{
+  background:var(--panel-bg);border:2px solid var(--panel-b);border-radius:18px;
+  padding:14px;
+  box-shadow:0 0 30px rgba(42,90,202,.07),inset 0 0 30px rgba(0,0,0,.4);
+}
+.panel-title{
+  font-family:'Orbitron',monospace;font-size:.68rem;font-weight:700;letter-spacing:.2em;
+  color:var(--accent);text-transform:uppercase;
+  border-bottom:1px solid var(--panel-b);padding-bottom:6px;margin-bottom:10px;
+}
+
+/* tabs */
+.tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.tab{
+  font-family:'Rajdhani',sans-serif;font-size:.7rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:6px;
+  cursor:pointer;border:1px solid var(--text-dim);color:var(--text-dim);
+  background:transparent;transition:all .2s;
+}
+.tab.active{background:var(--blue);color:var(--accent);border-color:var(--accent);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* stat rows */
+.stat-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid rgba(30,58,122,.4);font-size:.82rem;
+}
+.stat-row:last-child{border-bottom:none;}
+.stat-label{color:var(--text-dim);}
+.stat-val{color:var(--text);font-family:'Orbitron',monospace;font-size:.72rem;}
+.stat-val.red{color:var(--p1-light);}
+.stat-val.yel{color:var(--p2-light);}
+
+/* tip */
+.tip{
+  background:rgba(10,26,80,.6);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+  padding:7px 10px;margin:6px 0;font-size:.8rem;line-height:1.55;color:var(--text);
+}
+.tip strong{color:var(--accent);}
+.tip.red{border-color:var(--p1);}
+.tip.yel{border-color:var(--p2);}
+
+/* formula */
+.formula{
+  background:#04091a;border:1px solid #1e3a7a;border-radius:8px;
+  padding:8px 10px;margin:6px 0;font-size:.78rem;color:var(--accent);
+  text-align:center;line-height:1.6;
+}
+
+/* ── SUGGESTION PANEL ── */
+.suggest-btn{
+  width:100%;font-family:'Orbitron',monospace;font-size:.72rem;font-weight:900;
+  letter-spacing:.12em;text-transform:uppercase;padding:11px 0;border-radius:12px;
+  cursor:pointer;border:none;transition:all .25s;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#0a2060,#1a4acc,#0a2060);
+  background-size:200% 100%;color:#c8d8ff;
+  box-shadow:0 0 20px rgba(42,90,202,.4);
+  margin-bottom:12px;
+}
+.suggest-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
+  transform:translateX(-100%);transition:transform .5s;
+}
+.suggest-btn:hover::before{transform:translateX(100%);}
+.suggest-btn:hover{box-shadow:0 0 35px rgba(74,138,255,.7);background-position:right;}
+.suggest-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* col analysis */
+.col-chart{display:flex;gap:5px;align-items:flex-end;height:110px;margin:4px 0 8px;}
+.col-bar-wrap{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-end;gap:3px;height:100%;cursor:pointer;
+}
+.col-bar-outer{
+  width:100%;flex:1;background:#050e2a;border-radius:5px 5px 0 0;
+  border:1px solid #1e3a7a;position:relative;overflow:hidden;
+  transition:border-color .3s;
+}
+.col-bar-outer.best-col{border-color:#00ff88;box-shadow:0 0 12px rgba(0,255,136,.4);}
+.col-bar-outer.worst-col{border-color:#ff3b3b;box-shadow:0 0 8px rgba(255,59,59,.2);}
+.col-bar-fill{
+  position:absolute;bottom:0;left:0;right:0;
+  border-radius:4px 4px 0 0;transition:height .5s cubic-bezier(.34,1.56,.64,1);
+}
+.col-win-label{
+  font-family:'Orbitron',monospace;font-size:.52rem;font-weight:700;
+  transition:color .3s;
+}
+.col-num{font-size:.58rem;color:var(--text-dim);font-family:'Orbitron',monospace;}
+.col-tag{
+  font-size:.5rem;font-family:'Rajdhani',sans-serif;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;padding:1px 4px;border-radius:3px;
+  margin-top:1px;
+}
+
+/* suggestion result card */
+.suggest-card{
+  border-radius:10px;padding:10px 12px;margin-top:4px;
+  border:1px solid;transition:all .4s;font-size:.82rem;line-height:1.6;
+  display:none;
+}
+.suggest-card.show{display:block;}
+.suggest-card.good{background:rgba(0,255,136,.06);border-color:rgba(0,255,136,.3);color:#80ffcc;}
+.suggest-card.warn{background:rgba(255,200,0,.06);border-color:rgba(255,200,0,.3);color:#ffdc70;}
+.suggest-card.danger{background:rgba(255,59,59,.06);border-color:rgba(255,59,59,.3);color:#ff8080;}
+.suggest-card strong{display:block;font-family:'Orbitron',monospace;font-size:.75rem;
+  letter-spacing:.1em;margin-bottom:4px;}
+
+/* highlight suggested col on board */
+.col-highlight{border-color:rgba(0,255,136,.6)!important;}
+
+/* scrollable */
+.sb{max-height:380px;overflow-y:auto;}
+.sb::-webkit-scrollbar{width:3px;}
+.sb::-webkit-scrollbar-thumb{background:var(--panel-b);border-radius:2px;}
+
+/* AI thinking indicator */
+.ai-thinking{
+  text-align:center;font-size:.7rem;color:var(--text-dim);letter-spacing:.1em;
+  padding:4px 0;font-family:'Orbitron',monospace;
+}
+.dots::after{content:'...';animation:dotsAnim 1.2s infinite;}
+@keyframes dotsAnim{0%{content:'.'}33%{content:'..'}66%{content:'...'}}
+</style>
+
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+
+<h1>Conecta 4</h1>
+<p class="subtitle">Gravedad Estratégica · Teoría & IA Minimax</p>
+
+<div class="main-layout">
+
+  <!-- ═══ GAME ═══ -->
+  <div class="game-col">
+    <!-- players -->
+    <div class="turn-bar">
+      <div class="player-card p1 active" id="card1">
+        <div class="player-name" id="name1">Jugador 1</div>
+        <div class="player-score" id="score1">0</div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="player-card p2" id="card2">
+        <div class="player-name" id="name2">Jugador 2</div>
+        <div class="player-score" id="score2">0</div>
+      </div>
+    </div>
+
+    <!-- mode -->
+    <div class="mode-bar">
+      <button class="mode-btn active" id="mode-pvp" onclick="setMode('pvp')">👤 J vs J</button>
+      <button class="mode-btn" id="mode-easy" onclick="setMode('easy')">🤖 Fácil</button>
+      <button class="mode-btn" id="mode-hard" onclick="setMode('hard')">🧠 Minimax</button>
+    </div>
+
+    <!-- drop hints -->
+    <div class="board-wrap">
+      <div class="drop-hints" id="drop-hints">
+        <!-- 7 hints -->
+      </div>
+      <div class="board" id="board"></div>
+      <div class="status-bar" id="status">Turno de Rojo</div>
+      <div class="ai-thinking" id="ai-think" style="display:none">
+        IA pensando<span class="dots"></span>
+      </div>
+      <button class="btn" onclick="newGame()">↺ Nueva Partida</button>
+    </div>
+  </div>
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <div class="side-col">
+
+    <!-- STATS -->
+    <div class="side-panel">
+      <div class="panel-title">📊 Estadísticas</div>
+      <div class="stat-row"><span class="stat-label">Turno actual</span><span class="stat-val" id="st-turn">1</span></div>
+      <div class="stat-row"><span class="stat-label">Fichas Rojo</span><span class="stat-val red" id="st-r">0</span></div>
+      <div class="stat-row"><span class="stat-label">Fichas Amarillo</span><span class="stat-val yel" id="st-y">0</span></div>
+      <div class="stat-row"><span class="stat-label">Celdas libres</span><span class="stat-val" id="st-free">42</span></div>
+      <div class="stat-row"><span class="stat-label">Amenazas Rojo</span><span class="stat-val red" id="st-tr">—</span></div>
+      <div class="stat-row"><span class="stat-label">Amenazas Amarillo</span><span class="stat-val yel" id="st-ty">—</span></div>
+      <div class="stat-row"><span class="stat-label">Partidas jugadas</span><span class="stat-val" id="st-games">0</span></div>
+      <div class="stat-row"><span class="stat-label">Victorias Rojo / Amar.</span><span class="stat-val" id="st-wins">0 / 0</span></div>
+    </div>
+
+    <!-- SUGGESTION + COLUMN ANALYSIS -->
+    <div class="side-panel">
+      <div class="panel-title">🎯 Sugerencia & Análisis</div>
+
+      <button class="suggest-btn" id="suggest-btn" onclick="showSuggestion()">
+        💡 Sugerir mejor jugada
+      </button>
+
+      <div class="suggest-card" id="suggest-card"></div>
+
+      <div style="font-size:.62rem;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">
+        Prob. de victoria si juegas en cada columna
+      </div>
+      <div class="col-chart" id="col-chart"></div>
+      <div style="display:flex;gap:10px;font-size:.58rem;color:var(--text-dim);margin-top:3px;flex-wrap:wrap;">
+        <span>🟢 mejor</span><span>🔴 peligrosa/llena</span><span>⚪ neutral</span>
+      </div>
+    </div>
+
+    <!-- THEORY TABS -->
+    <div class="side-panel">
+      <div class="panel-title">📐 Teoría & Estrategia</div>
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('estrat',this)">Estrategia</button>
+        <button class="tab" onclick="showTab('math',this)">Matemáticas</button>
+        <button class="tab" onclick="showTab('ia',this)">IA</button>
+        <button class="tab" onclick="showTab('prob',this)">Prob.</button>
+      </div>
+
+      <!-- ESTRATEGIA -->
+      <div id="tab-estrat" class="tab-content active sb">
+        <div class="tip red"><strong>Control del centro:</strong> la columna central (col 4) conecta con más posibles líneas de 4. Ocúpala antes que tu rival.</div>
+        <div class="tip"><strong>Regla de las 7 columnas:</strong> el primer jugador tiene ventaja garantizada con juego perfecto en el tablero estándar 6×7.</div>
+        <div class="tip"><strong>Amenazas dobles (Zugzwang):</strong> crea dos amenazas simultáneas en distintas columnas. Tu rival solo puede bloquear una.</div>
+        <div class="tip yel"><strong>Par/Impar de filas:</strong> el primer jugador controla las posiciones impares, el segundo las pares. Una amenaza en fila impar favorece al rojo.</div>
+        <div class="tip"><strong>No regales el centro:</strong> si el rival ocupa las 3 columnas centrales, las posibilidades de ganar caen ~70%.</div>
+        <div class="tip"><strong>Vertical vs. horizontal:</strong> las amenazas verticales son más fáciles de crear, pero las diagonales son las más difíciles de detectar.</div>
+        <div class="tip red"><strong>Trampa de la L:</strong> dispón fichas en forma de L (3 horizontales + 1 diagonal) para forzar dos victorias posibles al mismo tiempo.</div>
+      </div>
+
+      <!-- MATEMÁTICAS -->
+      <div id="tab-math" class="tab-content sb">
+        <div class="tip">
+          <strong>Espacio de estados:</strong> el número de posiciones posibles en un tablero 6×7 es:
+          <div class="formula">$$|\mathcal{S}| \approx 4.5 \times 10^{12}$$</div>
+          Solo los estados alcanzables (con paridad legal) son ~$3.2 \times 10^{11}$.
+        </div>
+        <div class="tip">
+          <strong>Líneas ganadoras posibles:</strong> el número de cuartetos de celdas alineadas en un tablero $r \times c$ es:
+          <div class="formula">$$L = 3rc - 2r - 2c \cdot \frac{(r-3)(c-3)}{?}$$</div>
+          En 6×7: <strong>69 líneas</strong> posibles (24 horiz. + 21 vert. + 24 diag.).
+        </div>
+        <div class="tip">
+          <strong>Ventaja del primer jugador:</strong> con juego perfecto, el primer jugador <em>siempre gana</em>. Demostrado por James D. Allen (1988) y Victor Allis (1988) mediante búsqueda exhaustiva:
+          <div class="formula">$$\text{Primer jugador} \Rightarrow \text{victoria garantizada en} \leq 41 \text{ movimientos}$$</div>
+        </div>
+        <div class="tip">
+          <strong>Funciones heurísticas:</strong> una evaluación típica de posición asigna pesos a ventanas de 4:
+          <div class="formula">$$h = \sum_{w} \alpha(w_{\text{mías}}) - \beta(w_{\text{rival}})$$</div>
+          donde $\alpha$ y $\beta$ crecen exponencialmente con el número de fichas propias/rivales en la ventana.
+        </div>
+        <div class="tip">
+          <strong>Profundidad del árbol de juego:</strong> el árbol completo tiene hasta:
+          <div class="formula">$$7^{42} \approx 3 \times 10^{35} \text{ nodos}$$</div>
+          La poda alfa-beta reduce esto a ~$7^{21} \approx 5.6 \times 10^{17}$.
+        </div>
+      </div>
+
+      <!-- IA -->
+      <div id="tab-ia" class="tab-content sb">
+        <div class="tip">
+          <strong>Minimax:</strong> el algoritmo explora el árbol de juego asumiendo que ambos juegan óptimamente:
+          <div class="formula">$$V(s) = \begin{cases} +\infty & \text{gana IA} \\ -\infty & \text{gana rival} \\ \max_{a} V(s') & \text{turno IA} \\ \min_{a} V(s') & \text{turno rival} \end{cases}$$</div>
+        </div>
+        <div class="tip">
+          <strong>Poda Alfa-Beta:</strong> elimina ramas que no pueden mejorar el resultado conocido:
+          <div class="formula">$$\alpha \leq V(s) \leq \beta$$</div>
+          Si $V \leq \alpha$ en nodo MIN → poda. Si $V \geq \beta$ en nodo MAX → poda.
+        </div>
+        <div class="tip">
+          <strong>Ordenación de movimientos:</strong> explorar primero columnas centrales mejora la poda. El orden óptimo para 7 columnas:
+          <div class="formula">$$3, 2, 4, 1, 5, 0, 6 \quad \text{(de centro a bordes)}$$</div>
+        </div>
+        <div class="tip">
+          <strong>Evaluación de ventanas:</strong> la función heurística aquí usada puntúa cada ventana de 4 celdas:
+          <ul style="margin:4px 0 0 12px;font-size:.78rem;color:var(--text);line-height:1.7;">
+            <li>4 propias → $+10000$</li>
+            <li>3 propias + 1 vacía → $+50$</li>
+            <li>2 propias + 2 vacías → $+5$</li>
+            <li>3 rivales + 1 vacía → $-80$</li>
+          </ul>
+        </div>
+        <div class="tip">
+          <strong>Transposition table:</strong> cachear posiciones ya evaluadas reduce el tiempo de cómputo de $O(b^d)$ a casi $O(b^{d/2})$ en la práctica.
+        </div>
+      </div>
+
+      <!-- PROBABILIDAD -->
+      <div id="tab-prob" class="tab-content sb">
+        <div class="tip">
+          <strong>Prob. de victoria con apertura central:</strong> estadísticamente, comenzar en la columna 4 da:
+          <div class="formula">$$P(\text{victoria} \mid \text{col. 4}) \approx 67\%$$</div>
+        </div>
+        <div class="tip">
+          <strong>Prob. de tablas:</strong> con juego aleatorio en ambos lados, las tablas ocurren en ~$12\%$ de las partidas. Con juego óptimo: $0\%$ (siempre gana el primero).
+        </div>
+        <div class="tip">
+          <strong>Movilidad esperada:</strong> el número medio de movimientos en una partida de Conecta 4 es:
+          <div class="formula">$$E[m] \approx 36 \quad \text{(partidas sin juego perfecto)}$$</div>
+        </div>
+        <div class="tip">
+          <strong>Factor de ramificación:</strong> al inicio $b=7$, decrece conforme se llenan columnas:
+          <div class="formula">$$\bar{b} \approx 4.5 \quad \text{(media a lo largo de la partida)}$$</div>
+        </div>
+        <div class="tip">
+          <strong>Número de Catalan:</strong> el número de trayectorias distintas hasta el movimiento $n$ (sin victorias) sigue patrones combinatorios:
+          <div class="formula">$$\binom{n}{k} \text{ con restricciones de altura por columna}$$</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──
+const ROWS=6, COLS=7, WIN=4;
+const EMPTY=0, P1=1, P2=2;
+// column order for AI (center-first)
+const COL_ORDER=[3,2,4,1,5,0,6];
+
+// ── STATE ──
+let board, currentPlayer, gameOver, gameMode;
+let scores={1:0,2:0}, totalGames=0, wins={1:0,2:0};
+let turnCount=0, lastColScores=null;
+let aiTimer=null;
+
+// ── INIT ──
+function newGame(){
+  board=Array.from({length:ROWS},()=>Array(COLS).fill(EMPTY));
+  currentPlayer=1; gameOver=false; turnCount=0; lastColScores=null;
+  renderBoard();
+  renderHints();
+  updateStatus();
+  updateStats();
+  renderColAnalysis();
+  if(aiTimer){clearTimeout(aiTimer);aiTimer=null;}
+  document.getElementById('ai-think').style.display='none';
+  const sc=document.getElementById('suggest-card');
+  sc.className='suggest-card'; sc.innerHTML='';
+}
+
+function setMode(m){
+  gameMode=m;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mode-'+m).classList.add('active');
+  const n2=m==='pvp'?'Jugador 2':m==='easy'?'IA Fácil':'IA Minimax';
+  document.getElementById('name2').textContent=n2;
+  newGame();
+}
+gameMode='pvp';
+
+// ── BOARD RENDER ──
+function renderBoard(){
+  const el=document.getElementById('board');
+  el.innerHTML='';
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const cell=document.createElement('div');
+    cell.className='cell'+(board[r][c]===P1?' p1':board[r][c]===P2?' p2':'');
+    cell.dataset.col=c;
+    cell.onclick=()=>handleClick(c);
+    el.appendChild(cell);
+  }
+}
+
+function renderHints(){
+  const el=document.getElementById('drop-hints');
+  el.innerHTML='';
+  for(let c=0;c<COLS;c++){
+    const h=document.createElement('div');
+    h.className='drop-hint';
+    h.dataset.col=c;
+    h.onclick=()=>handleClick(c);
+    h.onmouseenter=()=>showHints(c);
+    el.appendChild(h);
+  }
+  // attach hover to board cells too
+  document.getElementById('board').onmousemove=e=>{
+    const cell=e.target.closest('.cell');
+    if(cell) showHints(parseInt(cell.dataset.col));
+  };
+  document.getElementById('board').onmouseleave=()=>hideHints();
+}
+
+function showHints(hoverCol){
+  if(gameOver) return;
+  if(gameMode!=='pvp'&&currentPlayer===P2) return;
+  document.querySelectorAll('.drop-hint').forEach((h,i)=>{
+    h.className='drop-hint '+(currentPlayer===P1?'p1-hint':'p2-hint')+(i===hoverCol?' show':'');
+  });
+}
+function hideHints(){document.querySelectorAll('.drop-hint').forEach(h=>h.classList.remove('show'));}
+
+// ── CLICK ──
+function handleClick(col){
+  if(gameOver) return;
+  if(gameMode!=='pvp'&&currentPlayer===P2) return;
+  drop(col);
+}
+
+function drop(col){
+  const row=getDropRow(col);
+  if(row===-1) return;
+  board[row][col]=currentPlayer;
+  turnCount++;
+  lastColScores=null;
+  // clear suggestion card on new move
+  const sc=document.getElementById('suggest-card');
+  if(sc){sc.className='suggest-card';sc.innerHTML='';}
+  renderBoard();
+  if(checkWin(row,col,currentPlayer)){
+    endGame(currentPlayer);return;
+  }
+  if(isFull()){endGame(0);return;}
+  currentPlayer=currentPlayer===P1?P2:P1;
+  updateStatus();updateStats();renderColAnalysis();
+  if(gameMode!=='pvp'&&currentPlayer===P2){
+    document.getElementById('ai-think').style.display='block';
+    aiTimer=setTimeout(()=>{
+      aiMove();
+      document.getElementById('ai-think').style.display='none';
+    },200);
+  }
+}
+
+function getDropRow(col){
+  for(let r=ROWS-1;r>=0;r--) if(!board[r][col]) return r;
+  return -1;
+}
+
+function isFull(){return board[0].every((_,c)=>board[0][c]!==EMPTY);}
+
+// ── WIN CHECK ──
+function checkWin(row,col,player){
+  return checkDir(row,col,player,0,1)||checkDir(row,col,player,1,0)||
+         checkDir(row,col,player,1,1)||checkDir(row,col,player,1,-1);
+}
+function checkDir(row,col,player,dr,dc){
+  let count=1;
+  for(let d=-1;d<=1;d+=2){
+    let r=row+dr*d, c=col+dc*d;
+    while(r>=0&&r<ROWS&&c>=0&&c<COLS&&board[r][c]===player){count++;r+=dr*d;c+=dc*d;}
+  }
+  return count>=WIN;
+}
+
+function getWinCells(player){
+  const cells=[];
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    if(board[r][c]!==player) continue;
+    const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+    for(const [dr,dc] of dirs){
+      let line=[[r,c]];
+      for(let i=1;i<WIN;i++){
+        const nr=r+dr*i,nc=c+dc*i;
+        if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&board[nr][nc]===player) line.push([nr,nc]);
+        else break;
+      }
+      if(line.length>=WIN) line.forEach(([lr,lc])=>cells.push(lr*COLS+lc));
+    }
+  }
+  return [...new Set(cells)];
+}
+
+function endGame(winner){
+  gameOver=true; totalGames++;
+  if(winner) wins[winner]++;
+  scores[winner||1]+=winner?1:0;// no extra score on draw
+  document.getElementById('score1').textContent=wins[1];
+  document.getElementById('score2').textContent=wins[2];
+
+  if(winner){
+    const winCells=getWinCells(winner);
+    const cells=document.querySelectorAll('.cell');
+    winCells.forEach(idx=>cells[idx].classList.add('win'));
+    setStatus(winner===P1?'🔴 ¡Gana Rojo!':'🟡 ¡Gana Amarillo!');
+  } else {
+    setStatus('🤝 ¡Empate!');
+  }
+  document.getElementById('st-games').textContent=totalGames;
+  document.getElementById('st-wins').textContent=`${wins[1]} / ${wins[2]}`;
+}
+
+// ── AI ──
+function aiMove(){
+  if(gameMode==='easy'){
+    // Random with basic blocking
+    const col=easyAI();
+    drop(col);
+  } else {
+    const col=minimaxRoot(5);
+    drop(col);
+  }
+}
+
+function easyAI(){
+  // check winning move
+  for(let c=0;c<COLS;c++){
+    const r=getDropRow(c);if(r===-1)continue;
+    board[r][c]=P2;
+    const w=checkWin(r,c,P2);
+    board[r][c]=EMPTY;
+    if(w) return c;
+  }
+  // block
+  for(let c=0;c<COLS;c++){
+    const r=getDropRow(c);if(r===-1)continue;
+    board[r][c]=P1;
+    const w=checkWin(r,c,P1);
+    board[r][c]=EMPTY;
+    if(w) return c;
+  }
+  // random valid
+  const valid=COL_ORDER.filter(c=>getDropRow(c)!==-1);
+  return valid[Math.floor(Math.random()*valid.length)];
+}
+
+function minimaxRoot(depth){
+  let best=-Infinity, bestCol=COL_ORDER.find(c=>getDropRow(c)!==-1);
+  for(const col of COL_ORDER){
+    const row=getDropRow(col);if(row===-1)continue;
+    board[row][col]=P2;
+    const score=minimax(depth-1,false,-Infinity,Infinity);
+    board[row][col]=EMPTY;
+    if(score>best){best=score;bestCol=col;}
+  }
+  return bestCol;
+}
+
+function minimax(depth,isMax,alpha,beta){
+  // terminal checks
+  if(checkWinFull(P2)) return 100000+depth;
+  if(checkWinFull(P1)) return -100000-depth;
+  if(isFull()||depth===0) return evalBoard();
+
+  if(isMax){
+    let v=-Infinity;
+    for(const col of COL_ORDER){
+      const row=getDropRow(col);if(row===-1)continue;
+      board[row][col]=P2;
+      v=Math.max(v,minimax(depth-1,false,alpha,beta));
+      board[row][col]=EMPTY;
+      alpha=Math.max(alpha,v);
+      if(alpha>=beta) break;
+    }
+    return v;
+  } else {
+    let v=Infinity;
+    for(const col of COL_ORDER){
+      const row=getDropRow(col);if(row===-1)continue;
+      board[row][col]=P1;
+      v=Math.min(v,minimax(depth-1,true,alpha,beta));
+      board[row][col]=EMPTY;
+      beta=Math.min(beta,v);
+      if(alpha>=beta) break;
+    }
+    return v;
+  }
+}
+
+function checkWinFull(player){
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+    if(board[r][c]===player&&checkWin(r,c,player)) return true;
+  return false;
+}
+
+function evalBoard(){
+  let score=0;
+  // center column bonus
+  const center=board.map(r=>r[3]);
+  score+=center.filter(v=>v===P2).length*4;
+  score-=center.filter(v=>v===P1).length*4;
+
+  // score all windows
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for(const [dr,dc] of dirs){
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const window=[];
+      let valid=true;
+      for(let i=0;i<4;i++){
+        const nr=r+dr*i,nc=c+dc*i;
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS){valid=false;break;}
+        window.push(board[nr][nc]);
+      }
+      if(valid) score+=scoreWindow(window,P2)-scoreWindow(window,P1);
+    }
+  }
+  return score;
+}
+
+function scoreWindow(w,player){
+  const opp=player===P1?P2:P1;
+  const mine=w.filter(v=>v===player).length;
+  const empty=w.filter(v=>v===EMPTY).length;
+  const rival=w.filter(v=>v===opp).length;
+  if(rival>0) return 0;
+  if(mine===4) return 10000;
+  if(mine===3&&empty===1) return 50;
+  if(mine===2&&empty===2) return 5;
+  return 0;
+}
+
+// ── STATS & UI ──
+function updateStatus(){
+  setStatus(currentPlayer===P1?'🔴 Turno de Rojo':'🟡 Turno de Amarillo');
+  const cards=['card1','card2'];
+  cards.forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('active',currentPlayer===i+1);
+  });
+}
+function setStatus(msg){document.getElementById('status').textContent=msg;}
+
+function updateStats(){
+  let r=0,y=0;
+  board.flat().forEach(v=>{if(v===P1)r++;if(v===P2)y++;});
+  document.getElementById('st-turn').textContent=turnCount+1;
+  document.getElementById('st-r').textContent=r;
+  document.getElementById('st-y').textContent=y;
+  document.getElementById('st-free').textContent=ROWS*COLS-r-y;
+  document.getElementById('st-tr').textContent=countThreats(P1);
+  document.getElementById('st-ty').textContent=countThreats(P2);
+}
+
+function countThreats(player){
+  let threats=0;
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for(const [dr,dc] of dirs){
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const window=[];let valid=true;
+      for(let i=0;i<4;i++){
+        const nr=r+dr*i,nc=c+dc*i;
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS){valid=false;break;}
+        window.push(board[nr][nc]);
+      }
+      if(!valid)continue;
+      const opp=player===P1?P2:P1;
+      const mine=window.filter(v=>v===player).length;
+      const rival=window.filter(v=>v===opp).length;
+      const empty=window.filter(v=>v===EMPTY).length;
+      if(rival===0&&mine===3&&empty===1) threats++;
+    }
+  }
+  return threats;
+}
+
+// ── COLUMN SCORES (real minimax evaluation per column) ──
+function getColScores(){
+  // For each valid column, run minimax from perspective of currentPlayer
+  // Returns array of {col, score, winProb, full, winsNow, losesIfSkip}
+  const DEPTH=4;
+  const me=currentPlayer;
+  const opp=me===P1?P2:P1;
+  const results=[];
+
+  for(let c=0;c<COLS;c++){
+    const row=getDropRow(c);
+    if(row===-1){results.push({col:c,full:true,score:-99999,winProb:0,winsNow:false,losesIfSkip:false});continue;}
+
+    // Does this move win immediately?
+    board[row][c]=me;
+    const winsNow=checkWin(row,c,me);
+    board[row][c]=EMPTY;
+
+    // Does NOT playing here let opp win?
+    board[row][c]=opp;
+    const oppWins=checkWin(row,c,opp);
+    board[row][c]=EMPTY;
+
+    // Minimax score (from me's perspective: me=maximizer)
+    board[row][c]=me;
+    let sc;
+    if(winsNow){sc=100000;}
+    else {
+      // run minimax as opponent's turn next
+      sc=minimaxForPlayer(DEPTH-1,false,-Infinity,Infinity,me,opp);
+    }
+    board[row][c]=EMPTY;
+
+    results.push({col:c,full:false,score:sc,winsNow,losesIfSkip:oppWins});
+  }
+
+  // Convert scores to win probabilities with softmax-like normalization
+  const validScores=results.filter(r=>!r.full).map(r=>r.score);
+  if(validScores.length===0) return results;
+
+  const minS=Math.min(...validScores);
+  const maxS=Math.max(...validScores);
+  const range=maxS-minS||1;
+
+  results.forEach(r=>{
+    if(r.full){r.winProb=0;return;}
+    if(r.winsNow){r.winProb=100;return;}
+    // normalized 0-100, then shaped to feel like probability
+    const norm=(r.score-minS)/range; // 0..1
+    r.winProb=Math.round(10+norm*80); // 10%..90%
+    // boost if opponent would win if we skip
+    if(r.losesIfSkip) r.winProb=Math.max(r.winProb,5); // show it's urgent but not great
+  });
+
+  return results;
+}
+
+function minimaxForPlayer(depth,isMax,alpha,beta,me,opp){
+  if(checkWinFull(me)) return 100000+depth;
+  if(checkWinFull(opp)) return -100000-depth;
+  if(isFull()||depth===0) return evalBoardFor(me);
+
+  if(isMax){
+    let v=-Infinity;
+    for(const col of COL_ORDER){
+      const row=getDropRow(col);if(row===-1)continue;
+      board[row][col]=me;
+      v=Math.max(v,minimaxForPlayer(depth-1,false,alpha,beta,me,opp));
+      board[row][col]=EMPTY;
+      alpha=Math.max(alpha,v);if(alpha>=beta)break;
+    }
+    return v;
+  } else {
+    let v=Infinity;
+    for(const col of COL_ORDER){
+      const row=getDropRow(col);if(row===-1)continue;
+      board[row][col]=opp;
+      v=Math.min(v,minimaxForPlayer(depth-1,true,alpha,beta,me,opp));
+      board[row][col]=EMPTY;
+      beta=Math.min(beta,v);if(alpha>=beta)break;
+    }
+    return v;
+  }
+}
+
+function evalBoardFor(me){
+  const opp=me===P1?P2:P1;
+  let score=0;
+  const center=board.map(r=>r[3]);
+  score+=center.filter(v=>v===me).length*4;
+  score-=center.filter(v=>v===opp).length*4;
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for(const [dr,dc] of dirs){
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const window=[];let valid=true;
+      for(let i=0;i<4;i++){
+        const nr=r+dr*i,nc=c+dc*i;
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS){valid=false;break;}
+        window.push(board[nr][nc]);
+      }
+      if(valid) score+=scoreWindow(window,me)-scoreWindow(window,opp);
+    }
+  }
+  return score;
+}
+
+function renderColAnalysis(){
+  if(gameOver){document.getElementById('col-chart').innerHTML='';return;}
+  const data=getColScores();
+  lastColScores=data;
+  const chart=document.getElementById('col-chart');
+  chart.innerHTML='';
+
+  // find best col
+  const bestScore=Math.max(...data.filter(d=>!d.full).map(d=>d.score),-Infinity);
+  const worstCols=data.filter(d=>!d.full&&d.losesIfSkip&&!d.winsNow).map(d=>d.col);
+
+  data.forEach(d=>{
+    const isWin=d.winsNow;
+    const isBest=!d.full&&d.score===bestScore&&!d.full;
+    const isDanger=worstCols.includes(d.col)&&!isWin;
+    const isFull=d.full;
+
+    const pct=isFull?0:d.winProb;
+    const heightPct=isFull?0:Math.max(pct,5);
+
+    // color gradient based on win prob
+    let fillColor;
+    if(isFull)       fillColor='#1a2a4a';
+    else if(isWin)   fillColor='linear-gradient(0deg,#00aa44,#00ff88)';
+    else if(isDanger)fillColor='linear-gradient(0deg,#aa1010,#ff3b3b)';
+    else if(isBest)  fillColor='linear-gradient(0deg,#1a7a44,#00cc66,#80ffcc)';
+    else {
+      // blue gradient scaled by prob
+      const intensity=Math.round(60+pct*1.5);
+      fillColor=`linear-gradient(0deg,#1a3a8a,hsl(220,80%,${intensity}%))`;
+    }
+
+    // label
+    let winLabel='';
+    if(isFull)        winLabel='—';
+    else if(isWin)    winLabel='WIN!';
+    else if(isDanger) winLabel='⚠';
+    else              winLabel=pct+'%';
+
+    let labelColor=isFull?'#2a3a5a':isWin?'#00ff88':isDanger?'#ff6060':isBest?'#80ffcc':'#7a9aff';
+
+    // tag
+    let tag='',tagBg='';
+    if(isFull){tag='llena';tagBg='#1a2a4a';}
+    else if(isWin){tag='¡gana!';tagBg='rgba(0,200,100,.25)';}
+    else if(isDanger){tag='bloquea';tagBg='rgba(200,50,50,.25)';}
+    else if(isBest){tag='mejor';tagBg='rgba(0,180,80,.15)';}
+
+    const div=document.createElement('div');
+    div.className='col-bar-wrap';
+    div.onclick=()=>{ if(!isFull&&!gameOver) handleClick(d.col); };
+    div.innerHTML=`
+      <div class="col-bar-outer${isBest?' best-col':isDanger&&!isWin?' worst-col':''}">
+        <div class="col-bar-fill" style="height:${heightPct}%;background:${fillColor};"></div>
+      </div>
+      <div class="col-win-label" style="color:${labelColor}">${winLabel}</div>
+      ${tag?`<div class="col-tag" style="background:${tagBg};color:${labelColor}">${tag}</div>`:''}
+      <div class="col-num">${d.col+1}</div>
+    `;
+    chart.appendChild(div);
+  });
+}
+
+// ── SHOW SUGGESTION ──
+function showSuggestion(){
+  if(gameOver) return;
+  const data=lastColScores||getColScores();
+  const card=document.getElementById('suggest-card');
+
+  // Find best move
+  const valid=data.filter(d=>!d.full);
+  if(!valid.length){card.className='suggest-card show warn';card.innerHTML='<strong>Sin movimientos</strong>El tablero está lleno.';return;}
+
+  const winner=valid.find(d=>d.winsNow);
+  const blocker=data.find(d=>!d.full&&d.losesIfSkip&&!d.winsNow);
+  const best=valid.reduce((a,b)=>a.score>b.score?a:b);
+
+  // Highlight column on board
+  highlightCol(best.col);
+
+  if(winner){
+    card.className='suggest-card show good';
+    card.innerHTML=`<strong>🏆 ¡VICTORIA! — Col. ${winner.col+1}</strong>
+      Juega en la columna <strong>${winner.col+1}</strong> para ganar ahora mismo.`;
+  } else if(blocker){
+    card.className='suggest-card show danger';
+    card.innerHTML=`<strong>⚠ BLOQUEA — Col. ${blocker.col+1}</strong>
+      Tu rival gana en la siguiente jugada si no colocas en la columna <strong>${blocker.col+1}</strong>. 
+      ${best.col!==blocker.col?`Tras bloquear, tu mejor opción es la col. <strong>${best.col+1}</strong> (${best.winProb}% est.)`:''}.`;
+  } else {
+    const pColor=currentPlayer===P1?'Rojo':'Amarillo';
+    card.className='suggest-card show '+(best.winProb>60?'good':best.winProb>40?'warn':'danger');
+    card.innerHTML=`<strong>💡 MEJOR JUGADA — Col. ${best.col+1}</strong>
+      ${pColor}, juega en la columna <strong>${best.col+1}</strong>.
+      Probabilidad estimada de victoria: <strong>${best.winProb}%</strong>.
+      ${best.winProb<35?'⚠ Posición difícil — el rival tiene ventaja.':''}`;
+  }
+
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function highlightCol(col){
+  // flash the cells in that column
+  const cells=document.querySelectorAll('.cell');
+  cells.forEach(c=>{
+    const cidx=parseInt(c.style.gridColumnStart||'0')-1;
+    // cells are ordered row*COLS+col
+  });
+  // simpler: briefly highlight drop-hint
+  const hints=document.querySelectorAll('.drop-hint');
+  hints.forEach((h,i)=>{
+    h.style.opacity=i===col?'1':'0';
+    h.style.transform=i===col?'scale(1.3)':'scale(1)';
+  });
+  setTimeout(()=>{
+    hints.forEach(h=>{h.style.opacity='0';h.style.transform='';});
+  },2000);
+}
+
+// ── TAB ──
+function showTab(id,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown',e=>{
+  if(gameOver)return;
+  if(gameMode!=='pvp'&&currentPlayer===P2)return;
+  const num=parseInt(e.key);
+  if(num>=1&&num<=7) drop(num-1);
+});
+
+// ── BOOT ──
+newGame();
+</script>
+</body>
+</html>

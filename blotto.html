@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colonel Blotto</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;900&family=IM+Fell+English:ital@0;1&display=swap');
+
+:root {
+  --bg:        #0c0904;
+  --gold:      #d4a843;
+  --gold-lt:   #f0cc78;
+  --gold-dk:   #7a5410;
+  --gold-dim:  #4a3408;
+  --red:       #c0392b;
+  --red-lt:    #e74c3c;
+  --red-glow:  rgba(192,57,43,0.35);
+  --blue:      #1a5fa0;
+  --blue-lt:   #3a8fd0;
+  --blue-glow: rgba(58,143,208,0.35);
+  --green:     #27ae60;
+  --green-lt:  #2ecc71;
+  --panel:     rgba(20,14,5,0.95);
+  --border:    rgba(212,168,67,0.3);
+  --border-bright: rgba(212,168,67,0.7);
+  --text:      #e8d5a0;
+  --text-dim:  #8a7040;
+  --shadow:    0 4px 32px rgba(0,0,0,0.8);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(80,40,0,0.4) 0%, transparent 70%),
+    repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(212,168,67,0.015) 40px, rgba(212,168,67,0.015) 41px),
+    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(212,168,67,0.015) 40px, rgba(212,168,67,0.015) 41px);
+  min-height: 100vh;
+  font-family: 'IM Fell English', Georgia, serif;
+  color: var(--text);
+  padding: 0 0 80px;
+}
+
+/* ══ HEADER ÉPICO ══ */
+.war-header {
+  text-align: center;
+  padding: 28px 20px 20px;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(100,40,0,0.25) 0%, transparent 100%);
+  margin-bottom: 24px;
+}
+.war-header::before, .war-header::after {
+  content: '✦ ✦ ✦ ✦ ✦';
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: var(--gold-dim);
+  letter-spacing: 1em;
+}
+.war-header::before { top: 10px; }
+.war-header::after  { bottom: 8px; font-size: 0.6rem; }
+
+h1 {
+  font-family: 'Cinzel Decorative', serif;
+  font-weight: 900;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  letter-spacing: 0.08em;
+  color: var(--gold-lt);
+  text-shadow:
+    0 0 40px rgba(212,168,67,0.5),
+    0 0 80px rgba(212,168,67,0.2),
+    2px 2px 0 rgba(0,0,0,0.8);
+  margin-bottom: 6px;
+}
+.subtitle {
+  font-size: 1rem;
+  color: var(--gold-dk);
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+/* ══ SCORE BAR ══ */
+.score-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  margin: 0 auto 24px;
+  max-width: 500px;
+  background: var(--panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow), 0 0 20px rgba(212,168,67,0.1);
+}
+.score-block {
+  flex: 1;
+  padding: 14px 20px;
+  text-align: center;
+  position: relative;
+}
+.score-block.you-side { background: rgba(26,95,160,0.15); }
+.score-block.mac-side { background: rgba(192,57,43,0.15); }
+.score-block.mid-side { background: rgba(212,168,67,0.05); }
+.score-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 4px;
+}
+.score-num {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.score-num.you { color: var(--blue-lt); text-shadow: 0 0 16px var(--blue-glow); }
+.score-num.mac { color: var(--red-lt); text-shadow: 0 0 16px var(--red-glow); }
+.score-num.mid { color: var(--gold); }
+.score-sep {
+  width: 1px;
+  height: 50px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* ══ MAIN LAYOUT ══ */
+.page-wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ══ CONFIG BAR ══ */
+.config-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 20px;
+}
+.config-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.config-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-right: 1px solid var(--border);
+}
+.config-group:last-child { border-right: none; }
+select, input[type=number] {
+  background: #1a1005;
+  color: var(--gold-lt);
+  border: 1px solid var(--gold-dim);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+}
+select:focus, input[type=number]:focus { outline: 1px solid var(--gold-dk); }
+
+/* ══ BATTLEFIELD GRID ══ */
+.battlefield-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.battlefield-label {
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  color: var(--gold-dk);
+  text-transform: uppercase;
+}
+
+.battlefield-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* ══ BATTLE CARD ══ */
+.battle-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.4s, box-shadow 0.4s;
+  box-shadow: var(--shadow);
+}
+.battle-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+.battle-card.won  { border-color: rgba(39,174,96,0.7); box-shadow: 0 0 24px rgba(39,174,96,0.2), var(--shadow); }
+.battle-card.won::before  { background: linear-gradient(90deg, transparent, var(--green-lt), transparent); }
+.battle-card.lost { border-color: rgba(192,57,43,0.7); box-shadow: 0 0 24px var(--red-glow), var(--shadow); }
+.battle-card.lost::before { background: linear-gradient(90deg, transparent, var(--red-lt), transparent); }
+.battle-card.draw { border-color: rgba(212,168,67,0.5); }
+
+.battle-card-header {
+  background: rgba(0,0,0,0.35);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.battle-name {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  color: var(--gold-lt);
+  text-transform: uppercase;
+}
+.battle-icon { font-size: 1.3rem; }
+.battle-result-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: none;
+}
+.battle-result-badge.won  { display:block; background: rgba(39,174,96,0.2); color: var(--green-lt); border: 1px solid rgba(39,174,96,0.5); }
+.battle-result-badge.lost { display:block; background: rgba(192,57,43,0.15); color: var(--red-lt); border: 1px solid rgba(192,57,43,0.4); }
+.battle-result-badge.draw { display:block; background: rgba(212,168,67,0.1); color: var(--gold); border: 1px solid var(--gold-dim); }
+
+/* Armies row */
+.armies-row {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  gap: 10px;
+}
+.army {
+  flex: 1;
+  text-align: center;
+}
+.army-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 4px;
+}
+.army-count {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1;
+  transition: all 0.25s;
+}
+.army-count.you { color: var(--blue-lt); text-shadow: 0 0 14px var(--blue-glow); }
+.army-count.mac { color: var(--red-lt); text-shadow: 0 0 14px var(--red-glow); }
+.army-count.mac.hidden-val { color: var(--text-dim); text-shadow: none; font-size: 1.8rem; }
+
+@keyframes popIn { 0%{transform:scale(1.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+.army-count.reveal { animation: popIn 0.45s cubic-bezier(0.34,1.56,0.64,1); }
+
+.vs-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.vs-line { width: 1px; height: 20px; background: var(--border); }
+.vs-text {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  color: var(--gold-dk);
+  letter-spacing: 0.05em;
+}
+
+/* Troop bar */
+.troop-bar-outer {
+  height: 5px;
+  background: rgba(255,255,255,0.05);
+  margin: 0 14px 4px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.troop-bar-inner {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--blue), var(--blue-lt));
+  transition: width 0.2s ease;
+}
+
+/* ++ -- buttons */
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 6px;
+  padding: 10px 14px 14px;
+}
+.troop-btn {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--gold-lt);
+  font-family: 'Cinzel', serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 9px 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.troop-btn:hover { background: rgba(212,168,67,0.15); border-color: var(--gold-dk); }
+.troop-btn:active { transform: scale(0.94); }
+.troop-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.troop-btn.minus { color: #ef9090; border-color: rgba(192,57,43,0.3); }
+.troop-btn.minus:hover { background: rgba(192,57,43,0.12); border-color: rgba(192,57,43,0.5); }
+.troop-btn.plus  { color: #90c8ef; border-color: rgba(58,143,208,0.3); }
+.troop-btn.plus:hover  { background: rgba(58,143,208,0.12); border-color: rgba(58,143,208,0.5); }
+
+/* ══ TROOPS REMAINING + PREVIEW ══ */
+.action-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.troops-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.troops-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.troops-val {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--gold-lt);
+  text-shadow: 0 0 20px rgba(212,168,67,0.4);
+  transition: color 0.3s;
+  line-height: 1;
+}
+.troops-val.warn  { color: var(--red-lt); text-shadow: 0 0 16px var(--red-glow); }
+.troops-val.ready { color: var(--green-lt); text-shadow: 0 0 16px rgba(46,204,113,0.5); }
+.troops-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.troops-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold-dk), var(--gold-lt));
+  transition: width 0.25s;
+}
+
+/* Preview box */
+.preview-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.preview-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-dk);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.win-gauge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.gauge-circle {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-dim);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.gauge-fill {
+  position: absolute; bottom:0; left:0; right:0;
+  background: rgba(39,174,96,0.25);
+  transition: height 0.35s ease;
+}
+.gauge-pct {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold-lt);
+  position: relative; z-index:1;
+}
+.gauge-sub {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  position: relative; z-index:1;
+}
+.preview-stats { flex:1; font-size: 0.82rem; line-height: 2; }
+.ps-row { display:flex; justify-content: space-between; }
+.ps-key { color: var(--text-dim); }
+.ps-val { font-family: 'Cinzel', serif; font-size: 0.82rem; }
+.ps-val.good { color: var(--green-lt); }
+.ps-val.bad  { color: var(--red-lt); }
+.ps-val.neu  { color: var(--gold); }
+.battle-pills {
+  display: flex; gap: 5px;
+}
+.battle-pill {
+  flex:1; padding: 5px 2px;
+  border-radius: 6px;
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  transition: all 0.3s;
+  border: 1px solid transparent;
+}
+.battle-pill.strong { background: rgba(39,174,96,0.2); color: var(--green-lt); border-color: rgba(39,174,96,0.3); }
+.battle-pill.weak   { background: rgba(192,57,43,0.15); color: var(--red-lt);   border-color: rgba(192,57,43,0.25); }
+.battle-pill.even   { background: rgba(212,168,67,0.1); color: var(--gold);      border-color: var(--gold-dim); }
+
+/* Controls box */
+.controls-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+.btn {
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 11px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  text-align: center;
+}
+.btn-battle {
+  background: linear-gradient(135deg, #8b1c1c, #5a0a0a);
+  color: var(--gold-lt);
+  border: 1px solid #aa2020;
+  box-shadow: 0 4px 16px rgba(139,28,28,0.5);
+  font-size: 1rem;
+  padding: 14px;
+}
+.btn-battle:hover:not(:disabled) { box-shadow: 0 4px 28px rgba(200,50,50,0.7); transform: translateY(-1px); }
+.btn-battle:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-reset {
+  background: rgba(212,168,67,0.1);
+  color: var(--gold-dk);
+  border: 1px solid var(--gold-dim);
+}
+.btn-reset:hover { background: rgba(212,168,67,0.2); color: var(--gold-lt); }
+.btn-new {
+  background: rgba(0,0,0,0.4);
+  color: var(--text-dim);
+  border: 1px solid rgba(122,84,16,0.3);
+}
+.btn-new:hover { border-color: var(--gold-dim); color: var(--text); }
+
+/* ══ RESULT BANNER ══ */
+.result-banner {
+  display: none;
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+  animation: bannerIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes bannerIn { from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
+.result-banner.win  { background: rgba(39,174,96,0.12); border: 1px solid rgba(39,174,96,0.5); }
+.result-banner.lose { background: rgba(192,57,43,0.1);  border: 1px solid rgba(192,57,43,0.4); }
+.result-banner.draw { background: rgba(212,168,67,0.08); border: 1px solid var(--gold-dim); }
+.result-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 5px;
+}
+.result-sub { font-size: 1rem; color: var(--text-dim); font-style: italic; }
+
+/* ══ ANALYSIS SECTION ══ */
+.analysis-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.analysis-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.analysis-card-header {
+  background: rgba(0,0,0,0.4);
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.analysis-card-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold-lt);
+}
+.analysis-card-sub {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.analysis-card-body { padding: 14px; overflow-x: auto; }
+
+/* TABLES */
+table.atbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+table.atbl th {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: var(--gold-dk);
+  padding: 7px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.25);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+table.atbl th.th-left { text-align: left; padding-left: 10px; }
+table.atbl td {
+  padding: 7px 6px;
+  text-align: center;
+  border-bottom: 1px solid rgba(122,84,16,0.12);
+  position: relative;
+  font-size: 0.88rem;
+}
+table.atbl td.td-left { text-align: left; padding-left: 10px; }
+table.atbl tr:hover td { background: rgba(212,168,67,0.04); }
+table.atbl tr.current-row td { background: rgba(58,143,208,0.08); }
+table.atbl tr.current-row td.td-left { border-left: 3px solid var(--blue-lt); }
+
+.strat-name-cell {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  color: var(--gold);
+  display: block;
+  letter-spacing: 0.05em;
+}
+.strat-alloc-cell {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  display: block;
+  margin-top: 1px;
+}
+.tval { position: relative; z-index: 1; font-family: 'Cinzel', serif; font-size: 0.82rem; }
+.tbar {
+  position: absolute; top:0; bottom:0; left:0;
+  opacity: 0.18; pointer-events: none;
+  transition: width 0.4s;
+  border-radius: 0 2px 2px 0;
+}
+td.c-green .tval { color: var(--green-lt); }
+td.c-yellow .tval { color: var(--gold-lt); }
+td.c-red .tval   { color: var(--red-lt); }
+td.c-dim .tval   { color: var(--text-dim); }
+
+/* Matrix table */
+table.mtbl {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  width: 100%;
+}
+table.mtbl th {
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  padding: 5px 4px;
+  color: var(--gold-dk);
+  text-align: center;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.3);
+  text-transform: uppercase;
+}
+table.mtbl th.th-left { text-align: left; padding-left: 8px; min-width: 80px; }
+table.mtbl td {
+  padding: 5px 4px;
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  min-width: 38px;
+  border: 1px solid rgba(122,84,16,0.1);
+}
+table.mtbl td.mw  { background: rgba(39,174,96,0.2); color: var(--green-lt); }
+table.mtbl td.ml  { background: rgba(192,57,43,0.15); color: var(--red-lt); }
+table.mtbl td.md  { background: rgba(212,168,67,0.08); color: var(--gold-dk); }
+table.mtbl td.ms  { background: rgba(0,0,0,0.4); color: rgba(122,84,16,0.4); }
+table.mtbl td.mc  { background: rgba(58,143,208,0.12); border: 1px solid rgba(58,143,208,0.3); color: var(--blue-lt); font-weight: bold; }
+
+.tbl-note {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 8px 0 0;
+  font-style: italic;
+}
+
+/* ══ HISTORIAL ══ */
+.history-bar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: var(--shadow);
+}
+.history-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: var(--gold-dk);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.history-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+}
+.hc-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.hc-badge.W { background: rgba(39,174,96,0.2); color: var(--green-lt); }
+.hc-badge.L { background: rgba(192,57,43,0.15); color: var(--red-lt); }
+.hc-badge.D { background: rgba(212,168,67,0.1); color: var(--gold); }
+.hc-moves { color: var(--text-dim); font-size: 0.74rem; }
+.hc-score { color: var(--gold-dk); font-size: 0.74rem; }
+
+/* ══ TABS ══ */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.tab {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+}
+.tab:hover { color: var(--gold-dk); }
+.tab.active { color: var(--gold-lt); border-bottom-color: var(--gold); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ══ THEORY ══ */
+.theory { font-size: 0.9rem; line-height: 1.8; }
+.theory h3 { font-family: 'Cinzel', serif; font-size: 0.8rem; letter-spacing: 0.15em; color: var(--gold); text-transform: uppercase; margin: 14px 0 6px; }
+.theory p { color: var(--text-dim); margin-bottom: 8px; }
+.theory strong { color: var(--text); }
+.formula-box {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px 16px;
+  margin: 10px 0;
+  font-size: 0.88rem;
+  color: var(--gold-lt);
+  font-style: italic;
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* ══ RESPONSIVE ══ */
+@media (max-width: 900px) {
+  .analysis-section { grid-template-columns: 1fr; }
+  .action-bar { grid-template-columns: 1fr 1fr; }
+  .controls-box { grid-column: 1/-1; flex-direction: row; flex-wrap: wrap; }
+}
+@media (max-width: 600px) {
+  .battlefield-grid { grid-template-columns: 1fr; }
+  .action-bar { grid-template-columns: 1fr; }
+  h1 { font-size: 1.6rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="war-header">
+  <h1>Colonel Blotto</h1>
+  <p class="subtitle">La Batalla de los Recursos</p>
+</div>
+
+<div class="page-wrap">
+
+  <!-- SCORE -->
+  <div class="score-bar">
+    <div class="score-block you-side">
+      <span class="score-lbl">⚔ Tú</span>
+      <div class="score-num you" id="sc-you">0</div>
+    </div>
+    <div class="score-sep"></div>
+    <div class="score-block mid-side">
+      <span class="score-lbl">Partidas</span>
+      <div class="score-num mid" id="sc-total">0</div>
+    </div>
+    <div class="score-sep"></div>
+    <div class="score-block mac-side">
+      <span class="score-lbl">Máquina ⚔</span>
+      <div class="score-num mac" id="sc-mac">0</div>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="config-bar">
+    <div class="config-group">
+      <span class="config-lbl">Tropas</span>
+      <input type="number" id="cfg-troops" value="100" min="10" max="500" step="10" style="width:70px">
+    </div>
+    <div class="config-group">
+      <span class="config-lbl">Batallas</span>
+      <select id="cfg-battles">
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </div>
+    <div class="config-group">
+      <span class="config-lbl">IA enemiga</span>
+      <select id="cfg-ai">
+        <option value="random">Aleatoria</option>
+        <option value="uniform">Uniforme</option>
+        <option value="focused">Concentrada</option>
+        <option value="adaptive" selected>Adaptativa</option>
+        <option value="nash">Nash Mix</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- RESULT BANNER -->
+  <div class="result-banner" id="result-banner">
+    <div class="result-title" id="result-title"></div>
+    <div class="result-sub"   id="result-sub"></div>
+  </div>
+
+  <!-- BATTLEFIELD -->
+  <div class="battlefield-section">
+    <div class="battlefield-label">⚔ &nbsp; Frentes de Batalla &nbsp; ⚔</div>
+    <div class="battlefield-grid" id="battlefield-grid"></div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar">
+
+    <div class="troops-box">
+      <div class="troops-lbl">☰ Tropas sin asignar</div>
+      <div class="troops-val" id="troops-val">100</div>
+      <div class="troops-progress">
+        <div class="troops-progress-fill" id="troops-prog" style="width:100%"></div>
+      </div>
+    </div>
+
+    <div class="preview-box">
+      <div class="preview-title">🔮 Análisis en tiempo real</div>
+      <div class="win-gauge">
+        <div class="gauge-circle">
+          <div class="gauge-fill" id="gauge-fill" style="height:50%"></div>
+          <div class="gauge-pct" id="gauge-pct">?</div>
+          <div class="gauge-sub">vs IA</div>
+        </div>
+        <div class="preview-stats">
+          <div class="ps-row"><span class="ps-key">vs Nash:</span><span class="ps-val neu" id="ps-nash">—</span></div>
+          <div class="ps-row"><span class="ps-key">Frentes exp:</span><span class="ps-val" id="ps-fronts">—</span></div>
+          <div class="ps-row"><span class="ps-key">Tipo:</span><span class="ps-val neu" id="ps-type">—</span></div>
+        </div>
+      </div>
+      <div class="battle-pills" id="battle-pills"></div>
+    </div>
+
+    <div class="controls-box">
+      <button class="btn btn-battle" id="btn-battle" disabled>⚔ &nbsp; Batallar</button>
+      <button class="btn btn-reset" id="btn-reset">↺ &nbsp; Resetear</button>
+      <button class="btn btn-new"   id="btn-new">↺ &nbsp; Nueva Partida</button>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="history-bar">
+    <div class="history-title">📜 Historial de batallas</div>
+    <div class="history-list" id="history-list"><span style="color:var(--text-dim);font-size:0.82rem;font-style:italic">Aún no has jugado ninguna partida…</span></div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div class="analysis-section">
+
+    <!-- Tabla 1: Mejores estrategias globales -->
+    <div class="analysis-card">
+      <div class="analysis-card-header">
+        <span class="analysis-card-title">📊 Mejores Estrategias</span>
+        <span class="analysis-card-sub">cabeza a cabeza · haz clic para usar</span>
+      </div>
+      <div class="analysis-card-body">
+        <table class="atbl" id="strat-table"></table>
+        <div class="tbl-note">Haz clic en una fila para aplicar esa asignación</div>
+      </div>
+    </div>
+
+    <!-- Tabla 2: Tu jugada vs estrategias -->
+    <div class="analysis-card">
+      <div class="analysis-card-header">
+        <span class="analysis-card-title">🎯 Tu Jugada vs Estrategias</span>
+        <span class="analysis-card-sub">se actualiza mientras asignas tropas</span>
+      </div>
+      <div class="analysis-card-body">
+        <div class="tabs" id="vs-tabs">
+          <div class="tab active" data-tab="vs-table">Tabla directa</div>
+          <div class="tab" data-tab="vs-matrix">Matriz completa</div>
+          <div class="tab" data-tab="vs-theory">Teoría</div>
+        </div>
+        <div class="tab-pane active" id="vs-table">
+          <table class="atbl" id="vs-table-content"></table>
+          <div class="tbl-note">🔵 = tu jugada actual</div>
+        </div>
+        <div class="tab-pane" id="vs-matrix">
+          <div style="overflow-x:auto">
+            <table class="mtbl" id="matrix-table"></table>
+          </div>
+          <div class="tbl-note">Verde=gana · Rojo=pierde · 🔵=tu fila</div>
+        </div>
+        <div class="tab-pane" id="vs-theory">
+          <div class="theory" id="theory-content"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- end page-wrap -->
+
+<script>
+// ══════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════
+let TOTAL   = 100;
+let N       = 3;
+let AI_MODE = 'adaptive';
+let alloc   = [];
+let gameOver = false;
+let scoreYou = 0, scoreMac = 0, scoreTotal = 0;
+let history = [];
+
+const BATTLE_NAMES  = ['Norte','Centro','Sur','Este','Oeste','Flanco'];
+const BATTLE_ICONS  = ['🏔️','🛡️','🌊','🌲','🏜️','⚔️'];
+
+// ══════════════════════════════════════
+// IA
+// ══════════════════════════════════════
+function aiPlay(mode) {
+  switch(mode) {
+    case 'random':   return randAlloc();
+    case 'uniform':  return unifAlloc();
+    case 'focused':  return focusAlloc();
+    case 'adaptive': return Math.random()<0.55 ? focusAlloc() : perturbUniform();
+    case 'nash':     return randAlloc();
+    default:         return randAlloc();
+  }
+}
+function randAlloc() {
+  const cuts = Array.from({length:N-1},()=>Math.floor(Math.random()*(TOTAL+1))).sort((a,b)=>a-b);
+  const r=[]; let p=0;
+  cuts.forEach(c=>{r.push(c-p);p=c;});
+  r.push(TOTAL-p);
+  return r;
+}
+function unifAlloc() {
+  const b=Math.floor(TOTAL/N), rem=TOTAL-b*N;
+  return Array.from({length:N},(_,i)=>b+(i<rem?1:0));
+}
+function focusAlloc() {
+  const k=Math.ceil(N/2), big=Math.floor(TOTAL/k), rem=TOTAL-big*k;
+  const idx=shuffle(Array.from({length:N},(_,i)=>i)).slice(0,k);
+  const r=Array(N).fill(0);
+  idx.forEach((i,j)=>r[i]=big+(j<rem?1:0));
+  return r;
+}
+function perturbUniform() {
+  const base=TOTAL/N;
+  let r=Array.from({length:N},()=>base+(Math.random()-0.5)*base*1.4);
+  r=r.map(v=>Math.max(0,v));
+  const s=r.reduce((a,b)=>a+b,0);
+  r=r.map(v=>Math.round(v/s*TOTAL));
+  let d=TOTAL-r.reduce((a,b)=>a+b,0);
+  r[0]+=d;
+  return r;
+}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+// ══════════════════════════════════════
+// EVALUACIÓN
+// ══════════════════════════════════════
+function evalMatch(you, mac) {
+  let yw=0,mw=0,res=[];
+  for(let i=0;i<you.length;i++){
+    if(you[i]>mac[i]){yw++;res.push('W');}
+    else if(you[i]<mac[i]){mw++;res.push('L');}
+    else res.push('D');
+  }
+  return {yw,mw,res};
+}
+function winner(yw,mw){return yw>mw?'you':mw>yw?'mac':'draw';}
+
+// ══════════════════════════════════════
+// ESTRATEGIAS CANÓNICAS
+// ══════════════════════════════════════
+let cachedStrats=null, cachedStats=null;
+function getStrats() {
+  if(cachedStrats) return {strats:cachedStrats,stats:cachedStats};
+  const s=buildStrats();
+  const st=computeStats(s);
+  cachedStrats=s; cachedStats=st;
+  return {strats:s,stats:st};
+}
+function buildStrats() {
+  const s=[];
+  const b=Math.floor(TOTAL/N), rem=TOTAL-b*N;
+  s.push({name:'Uniforme', alloc:Array.from({length:N},(_,i)=>b+(i<rem?1:0))});
+  const k=Math.ceil(N/2), big=Math.floor(TOTAL/k), bigR=TOTAL-big*k;
+  {const a=Array(N).fill(0);for(let i=0;i<k;i++)a[i]=big+(i<bigR?1:0);s.push({name:`Frontal x${k}`,alloc:a});}
+  {const a=Array(N).fill(0);for(let i=0;i<k;i++)a[N-1-i]=big+(i<bigR?1:0);s.push({name:`Trasera x${k}`,alloc:a});}
+  if(N>=3){
+    const w=Array.from({length:N},(_,i)=>N-Math.abs(i-(N-1)/2));
+    const ws=w.reduce((a,b)=>a+b,0);
+    let a=w.map(v=>Math.floor(v/ws*TOTAL));
+    a[Math.floor(N/2)]+=TOTAL-a.reduce((x,y)=>x+y,0);
+    s.push({name:'Pirámide',alloc:a});
+  }
+  for(let i=0;i<Math.min(N,3);i++){const a=Array(N).fill(0);a[i]=TOTAL;s.push({name:`Todo P${i+1}`,alloc:a});}
+  const hv=Math.floor(TOTAL/(N-1));
+  const ha=Array(N).fill(hv); ha[0]=TOTAL-hv*(N-1);
+  s.push({name:'Ignora P1',alloc:ha});
+  // random samples
+  for(let i=0;i<4;i++) s.push({name:`Libre ${i+1}`,alloc:randAlloc()});
+  return s;
+}
+function computeStats(strats) {
+  return strats.map(s=>{
+    let wins=0,losses=0,draws=0;
+    strats.forEach(opp=>{
+      if(opp===s)return;
+      const w=winner(...Object.values(evalMatch(s.alloc,opp.alloc)).slice(0,2));
+      if(w==='you')wins++;else if(w==='mac')losses++;else draws++;
+    });
+    let mcW=0;
+    for(let i=0;i<600;i++){const m=randAlloc();if(winner(...Object.values(evalMatch(s.alloc,m)).slice(0,2))==='you')mcW++;}
+    let nhW=0;
+    for(let i=0;i<200;i++){const m=randAlloc();if(winner(...Object.values(evalMatch(s.alloc,m)).slice(0,2))==='you')nhW++;}
+    return{...s,wins,losses,draws,vsRand:mcW/600*100,vsNash:nhW/200*100};
+  });
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+function init() {
+  TOTAL   = parseInt(document.getElementById('cfg-troops').value)||100;
+  N       = parseInt(document.getElementById('cfg-battles').value)||3;
+  AI_MODE = document.getElementById('cfg-ai').value;
+  alloc   = Array(N).fill(0);
+  gameOver = false;
+  cachedStrats=null; cachedStats=null;
+  document.getElementById('result-banner').style.display='none';
+  document.getElementById('btn-battle').disabled=true;
+  renderBattleGrid();
+  updateTroopsBar();
+  updatePreview();
+  renderStratTable();
+  renderVsTable();
+  renderMatrix();
+  renderTheory();
+}
+
+// ══════════════════════════════════════
+// RENDER BATALLAS — 3 columnas
+// ══════════════════════════════════════
+function renderBattleGrid(machineAlloc=null, results=null) {
+  const grid = document.getElementById('battlefield-grid');
+  grid.innerHTML='';
+  for(let i=0;i<N;i++){
+    const card=document.createElement('div');
+    card.className='battle-card';
+    if(results) card.classList.add(results[i]==='W'?'won':results[i]==='L'?'lost':'draw');
+
+    // Header
+    const hdr=document.createElement('div');
+    hdr.className='battle-card-header';
+    const nm=document.createElement('div');
+    nm.className='battle-name';
+    nm.textContent=`${BATTLE_ICONS[i]||'⚔'} Frente ${BATTLE_NAMES[i]||i+1}`;
+    hdr.appendChild(nm);
+    if(results){
+      const rb=document.createElement('div');
+      rb.className='battle-result-badge '+(results[i]==='W'?'won':results[i]==='L'?'lost':'draw');
+      rb.textContent=results[i]==='W'?'Victoria':results[i]==='L'?'Derrota':'Empate';
+      hdr.appendChild(rb);
+    }
+    card.appendChild(hdr);
+
+    // Armies row
+    const armRow=document.createElement('div');
+    armRow.className='armies-row';
+    // You
+    const youBlk=document.createElement('div');youBlk.className='army';
+    const yLbl=document.createElement('span');yLbl.className='army-lbl';yLbl.textContent='TÚ';
+    const yVal=document.createElement('div');yVal.className='army-count you'+(results?' reveal':'');
+    yVal.textContent=alloc[i];
+    youBlk.appendChild(yLbl);youBlk.appendChild(yVal);
+    // VS
+    const vsdiv=document.createElement('div');vsdiv.className='vs-divider';
+    vsdiv.innerHTML='<div class="vs-line"></div><div class="vs-text">VS</div><div class="vs-line"></div>';
+    // Machine
+    const macBlk=document.createElement('div');macBlk.className='army';
+    const mLbl=document.createElement('span');mLbl.className='army-lbl';mLbl.textContent='MÁQUINA';
+    const mVal=document.createElement('div');
+    mVal.className='army-count mac'+(machineAlloc?results?' reveal':'':' hidden-val');
+    mVal.textContent=machineAlloc?machineAlloc[i]:'???';
+    macBlk.appendChild(mLbl);macBlk.appendChild(mVal);
+    armRow.appendChild(youBlk);armRow.appendChild(vsdiv);armRow.appendChild(macBlk);
+    card.appendChild(armRow);
+
+    // Troop bar
+    const tbOut=document.createElement('div');tbOut.className='troop-bar-outer';
+    const tbIn=document.createElement('div');tbIn.className='troop-bar-inner';
+    tbIn.style.width=(alloc[i]/TOTAL*100)+'%';
+    tbOut.appendChild(tbIn);
+    card.appendChild(tbOut);
+
+    // ±1 ±5 buttons
+    if(!results){
+      const btnRow=document.createElement('div');btnRow.className='btn-row';
+      [[-5,'−5','minus'],[-1,'−1','minus'],[+1,'+1','plus'],[+5,'+5','plus']].forEach(([delta,lbl,cls])=>{
+        const btn=document.createElement('button');
+        btn.className=`troop-btn ${cls}`;
+        btn.textContent=lbl;
+        btn.addEventListener('click',()=>changeTroop(i,delta));
+        btnRow.appendChild(btn);
+      });
+      card.appendChild(btnRow);
+    }
+
+    grid.appendChild(card);
+  }
+}
+
+function changeTroop(idx, delta) {
+  if(gameOver)return;
+  const others=alloc.reduce((s,v,i)=>i===idx?s:s+v,0);
+  const maxA=TOTAL-others;
+  alloc[idx]=Math.max(0,Math.min(alloc[idx]+delta,maxA));
+  renderBattleGrid();
+  updateTroopsBar();
+  updatePreview();
+  renderVsTable();
+}
+
+function updateTroopsBar(){
+  const used=alloc.reduce((a,b)=>a+b,0);
+  const rem=TOTAL-used;
+  const el=document.getElementById('troops-val');
+  el.textContent=rem;
+  el.className='troops-val'+(rem<0?' warn':rem===0?' ready':'');
+  document.getElementById('troops-prog').style.width=Math.max(0,rem/TOTAL*100)+'%';
+  document.getElementById('btn-battle').disabled=(rem!==0||gameOver);
+}
+
+// ══════════════════════════════════════
+// PREVIEW TIEMPO REAL
+// ══════════════════════════════════════
+function updatePreview(){
+  const rem=TOTAL-alloc.reduce((a,b)=>a+b,0);
+  // Pills
+  const pills=document.getElementById('battle-pills');
+  pills.innerHTML='';
+  const perF=TOTAL/N;
+  for(let i=0;i<N;i++){
+    const p=document.createElement('div');p.className='battle-pill';
+    const v=alloc[i];
+    if(v>perF*1.3)p.classList.add('strong');
+    else if(v<perF*0.7)p.classList.add('weak');
+    else p.classList.add('even');
+    p.textContent=`P${i+1}: ${v}`;
+    pills.appendChild(p);
+  }
+  if(rem===0){
+    const mc=monteCarlo(alloc,AI_MODE,1500);
+    document.getElementById('gauge-pct').textContent=mc.winPct.toFixed(0)+'%';
+    document.getElementById('gauge-fill').style.height=mc.winPct+'%';
+    let nhW=0;
+    for(let i=0;i<300;i++){const m=randAlloc();if(winner(...Object.values(evalMatch(alloc,m)).slice(0,2))==='you')nhW++;}
+    const np=(nhW/300*100).toFixed(0)+'%';
+    const npEl=document.getElementById('ps-nash');
+    npEl.textContent=np;
+    npEl.className='ps-val '+(nhW/300>0.52?'good':nhW/300<0.44?'bad':'neu');
+    let expF=0;
+    for(let i=0;i<400;i++){const m=randAlloc();const{yw}=evalMatch(alloc,m);expF+=yw;}
+    document.getElementById('ps-fronts').textContent=(expF/400).toFixed(2)+'/'+N;
+    const mx=Math.max(...alloc),mn=Math.min(...alloc),rng=mx-mn;
+    let type=rng<TOTAL*0.12?'Uniforme':alloc.indexOf(mx)===Math.floor(N/2)?'Pirámide':'Concentrada';
+    document.getElementById('ps-type').textContent=type;
+  } else {
+    document.getElementById('gauge-pct').textContent='?';
+    document.getElementById('gauge-fill').style.height='50%';
+    document.getElementById('ps-nash').textContent=`${rem} libres`;
+    document.getElementById('ps-nash').className='ps-val neu';
+    document.getElementById('ps-fronts').textContent='—';
+    document.getElementById('ps-type').textContent='—';
+  }
+}
+
+function monteCarlo(you,mode,iters){
+  let w=0,l=0,d=0;
+  for(let i=0;i<iters;i++){
+    const m=aiPlay(mode);
+    const{yw,mw}=evalMatch(you,m);
+    const r=winner(yw,mw);
+    if(r==='you')w++;else if(r==='mac')l++;else d++;
+  }
+  return{winPct:w/iters*100,losePct:l/iters*100,drawPct:d/iters*100};
+}
+
+// ══════════════════════════════════════
+// BATTLE!
+// ══════════════════════════════════════
+function doBattle(){
+  if(gameOver)return;
+  const you=[...alloc];
+  const mac=aiPlay(AI_MODE);
+  const{yw,mw,res}=evalMatch(you,mac);
+  const w=winner(yw,mw);
+  gameOver=true;
+  document.getElementById('btn-battle').disabled=true;
+  renderBattleGrid(mac,res);
+
+  const banner=document.getElementById('result-banner');
+  const titleEl=document.getElementById('result-title');
+  const subEl=document.getElementById('result-sub');
+  banner.style.display='block';
+  scoreTotal++;
+  if(w==='you'){
+    scoreYou++;
+    banner.className='result-banner win';
+    titleEl.style.color='var(--green-lt)';
+    titleEl.textContent='⚔ ¡Victoria!';
+    subEl.textContent=`Ganaste ${yw} de ${N} frentes`;
+  } else if(w==='mac'){
+    scoreMac++;
+    banner.className='result-banner lose';
+    titleEl.style.color='var(--red-lt)';
+    titleEl.textContent='☠ Derrota';
+    subEl.textContent=`La máquina ganó ${mw} de ${N} frentes · tu: ${yw}`;
+  } else {
+    banner.className='result-banner draw';
+    titleEl.style.color='var(--gold)';
+    titleEl.textContent='⚖ Empate';
+    subEl.textContent=`${yw} frentes cada uno`;
+  }
+  document.getElementById('sc-you').textContent=scoreYou;
+  document.getElementById('sc-mac').textContent=scoreMac;
+  document.getElementById('sc-total').textContent=scoreTotal;
+  const code=w==='you'?'W':w==='mac'?'L':'D';
+  history.unshift({code,you,mac,score:`${yw}-${mw}`});
+  renderHistory();
+}
+
+function renderHistory(){
+  const list=document.getElementById('history-list');
+  if(!history.length)return;
+  list.innerHTML='';
+  history.slice(0,10).forEach(h=>{
+    const chip=document.createElement('div');chip.className='history-chip';
+    chip.innerHTML=`<span class="hc-badge ${h.code}">${h.code==='W'?'Victoria':h.code==='L'?'Derrota':'Empate'}</span>
+      <span class="hc-moves">Tú [${h.you.join('·')}]</span>
+      <span class="hc-score">${h.score}</span>`;
+    list.appendChild(chip);
+  });
+}
+
+// ══════════════════════════════════════
+// TABLA 1: MEJORES ESTRATEGIAS
+// ══════════════════════════════════════
+function renderStratTable(){
+  const{stats}=getStrats();
+  const tbl=document.getElementById('strat-table');
+  tbl.innerHTML='';
+  const thead=document.createElement('thead');
+  thead.innerHTML=`<tr>
+    <th class="th-left">Estrategia</th>
+    <th>Asignación</th>
+    <th>Gana vs</th>
+    <th>Pierde vs</th>
+    <th>vs Rand%</th>
+    <th>vs Nash%</th>
+  </tr>`;
+  tbl.appendChild(thead);
+  const tbody=document.createElement('tbody');
+  stats.forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.style.cursor='pointer';
+    tr.title='Clic para usar esta asignación';
+    tr.addEventListener('click',()=>applyStrat(s.alloc));
+    tr.innerHTML=`
+      <td class="td-left"><span class="strat-name-cell">${s.name}</span></td>
+      <td><span class="strat-alloc-cell">[${s.alloc.join('·')}]</span></td>
+      <td class="${s.wins>=s.losses?'c-green':'c-red'}"><span class="tval">${s.wins}</span></td>
+      <td class="${s.losses===0?'c-green':s.losses>s.wins?'c-red':'c-yellow'}"><span class="tval">${s.losses}</span></td>
+      <td class="${s.vsRand>=55?'c-green':s.vsRand<=42?'c-red':'c-yellow'}">
+        <div class="tbar" style="width:${s.vsRand}%;background:rgba(39,174,96,0.6)"></div>
+        <span class="tval">${s.vsRand.toFixed(1)}%</span>
+      </td>
+      <td class="${s.vsNash>=55?'c-green':s.vsNash<=42?'c-red':'c-yellow'}">
+        <div class="tbar" style="width:${s.vsNash}%;background:rgba(212,168,67,0.6)"></div>
+        <span class="tval">${s.vsNash.toFixed(1)}%</span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+}
+
+function applyStrat(a){
+  if(gameOver)return;
+  alloc=[...a];
+  renderBattleGrid();
+  updateTroopsBar();
+  updatePreview();
+  renderVsTable();
+}
+
+// ══════════════════════════════════════
+// TABLA 2: TU JUGADA VS ESTRATEGIAS
+// ══════════════════════════════════════
+function renderVsTable(){
+  const{strats}=getStrats();
+  const tbl=document.getElementById('vs-table-content');
+  tbl.innerHTML='';
+  const youAlloc=[...alloc];
+  const rem=TOTAL-youAlloc.reduce((a,b)=>a+b,0);
+
+  const thead=document.createElement('thead');
+  thead.innerHTML=`<tr>
+    <th class="th-left">Estrategia rival</th>
+    <th>Asignación rival</th>
+    <th>Resultado</th>
+    <th>Tus frentes</th>
+    <th>Sus frentes</th>
+  </tr>`;
+  tbl.appendChild(thead);
+
+  // Fila: TU JUGADA
+  const myRow=document.createElement('thead');
+  myRow.innerHTML=`<tr style="background:rgba(58,143,208,0.08);border-bottom:1px solid rgba(58,143,208,0.3)">
+    <td class="td-left" colspan="5" style="padding:6px 10px">
+      <span style="font-family:Cinzel,serif;font-size:0.72rem;color:var(--blue-lt);letter-spacing:0.12em;">
+        🔵 TU JUGADA ACTUAL: [${rem===0?youAlloc.join('·'):`${youAlloc.join('·')} + ${rem} sin asignar`}]
+      </span>
+    </td>
+  </tr>`;
+  tbl.appendChild(myRow);
+
+  const tbody=document.createElement('tbody');
+  strats.forEach(opp=>{
+    const{yw,mw,res}=evalMatch(youAlloc,opp.alloc);
+    const w=winner(yw,mw);
+    const tr=document.createElement('tr');
+    const wCls=w==='you'?'c-green':w==='mac'?'c-red':'c-yellow';
+    const wTxt=w==='you'?'✓ GANAS':w==='mac'?'✗ PIERDES':'= EMPATE';
+    tr.innerHTML=`
+      <td class="td-left"><span class="strat-name-cell">${opp.name}</span></td>
+      <td><span class="strat-alloc-cell">[${opp.alloc.join('·')}]</span></td>
+      <td class="${wCls}"><span class="tval">${rem===0?wTxt:'—'}</span></td>
+      <td class="${rem===0?(yw>=Math.ceil(N/2)?'c-green':'c-yellow'):'c-dim'}"><span class="tval">${rem===0?yw:'?'}</span></td>
+      <td class="${rem===0?(mw>=Math.ceil(N/2)?'c-red':'c-yellow'):'c-dim'}"><span class="tval">${rem===0?mw:'?'}</span></td>`;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+}
+
+// ══════════════════════════════════════
+// MATRIZ COMPLETA
+// ══════════════════════════════════════
+function renderMatrix(){
+  const{strats}=getStrats();
+  const youAlloc=[...alloc];
+  const tbl=document.getElementById('matrix-table');
+  tbl.innerHTML='';
+
+  // Incluye "Tu jugada" como primera fila/col
+  const allRows=[{name:'🔵 Tú', alloc:youAlloc},...strats];
+
+  const thead=document.createElement('thead');
+  const hr=document.createElement('tr');
+  const th0=document.createElement('th');th0.className='th-left';th0.textContent='TÚ \\ RIVAL';
+  hr.appendChild(th0);
+  allRows.forEach(s=>{
+    const th=document.createElement('th');
+    th.textContent=(s.name.length>8?s.name.slice(0,8):s.name);
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);tbl.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+  allRows.forEach((row,ri)=>{
+    const tr=document.createElement('tr');
+    if(ri===0)tr.style.background='rgba(58,143,208,0.06)';
+    const th=document.createElement('td');
+    th.style.cssText='font-family:Cinzel,serif;font-size:0.6rem;color:var(--gold-dk);text-align:left;padding-left:6px;';
+    if(ri===0)th.style.color='var(--blue-lt)';
+    th.textContent=row.name.slice(0,10);
+    tr.appendChild(th);
+    allRows.forEach((col,ci)=>{
+      const td=document.createElement('td');
+      if(ri===ci){td.className='ms';td.textContent='—';}
+      else{
+        const{yw,mw}=evalMatch(row.alloc,col.alloc);
+        const w=winner(yw,mw);
+        if(ri===0||ci===0) td.className='mc';
+        else td.className=w==='you'?'mw':w==='mac'?'ml':'md';
+        td.textContent=w==='you'?'W':w==='mac'?'L':'D';
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+}
+
+// ══════════════════════════════════════
+// TEORÍA
+// ══════════════════════════════════════
+function renderTheory(){
+  const el=document.getElementById('theory-content');
+  const need=Math.ceil(N/2);
+  const perF=Math.floor(TOTAL/N);
+  el.innerHTML=`
+    <h3>El Juego del Coronel Blotto</h3>
+    <p>Introducido por <strong>Émile Borel</strong> en 1921: dos jugadores reparten recursos en <em>n</em> frentes simultáneamente. Gana quien conquiste más frentes.</p>
+
+    <h3>No hay estrategia pura óptima</h3>
+    <p>Para cualquier asignación <em>[a, b, c]</em>, existe una que la derrota. El juego tiene equilibrio de Nash únicamente en <strong>estrategia mixta</strong> (distribución probabilística sobre asignaciones).</p>
+
+    <div class="formula-box">
+      Con ${TOTAL} tropas y ${N} batallas, necesitas ganar ≥ ${need} frentes.<br>
+      Concentrar ${Math.floor(TOTAL/need)} tropas en ${need} frentes = victoria segura en esos frentes,<br>
+      pero deja los otros completamente expuestos.
+    </div>
+
+    <h3>Estrategia Uniforme vs Concentrada</h3>
+    <p><strong>Uniforme [${perF}·${perF}…]:</strong> Predecible. Una estrategia con ${perF+1} en ${need} frentes clave la derrota.</p>
+    <p><strong>Concentrada en ${need} frentes:</strong> Poderosa contra estrategias dispersas. Vulnerable si el rival también concentra en los mismos frentes.</p>
+
+    <h3>Intuición práctica</h3>
+    <p>El Nash mix implica que <em>ninguna estrategia fija</em> gana más del 50% a largo plazo. Sin embargo, contra IA predecible (uniforme o concentrada), sí existen respuestas óptimas claras.</p>
+  `;
+}
+
+// ══════════════════════════════════════
+// EVENTOS
+// ══════════════════════════════════════
+document.getElementById('btn-battle').addEventListener('click',doBattle);
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  if(gameOver)return;
+  alloc=Array(N).fill(0);
+  renderBattleGrid();updateTroopsBar();updatePreview();renderVsTable();
+});
+document.getElementById('btn-new').addEventListener('click',()=>{
+  gameOver=false;
+  init();
+});
+document.getElementById('cfg-troops').addEventListener('change',()=>{cachedStrats=null;init();});
+document.getElementById('cfg-battles').addEventListener('change',()=>{cachedStrats=null;init();});
+document.getElementById('cfg-ai').addEventListener('change',()=>{AI_MODE=document.getElementById('cfg-ai').value;updatePreview();});
+
+// Tabs
+document.querySelectorAll('#vs-tabs .tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('#vs-tabs .tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='vs-matrix') renderMatrix();
+  });
+});
+
+// ══════════════════════════════════════
+// START
+// ══════════════════════════════════════
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeBreaker – Mastermind</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dark: #8a6a2a;
+    --bg: #1a1208;
+    --panel: linear-gradient(160deg, #3d2c0e, #251a06);
+    --panel-border: #8a6a2a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image: radial-gradient(ellipse at 30% 20%, #2a1a04 0%, #0a0800 70%);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 18px 12px 60px;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--gold-light);
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace; font-weight: 900;
+    font-size: clamp(1.3rem, 3.5vw, 2rem); letter-spacing: 0.15em;
+    color: var(--gold-light); text-shadow: 0 0 20px rgba(201,168,76,0.6);
+    margin-bottom: 4px; text-transform: uppercase;
+  }
+  .subtitle { font-size: 0.8rem; color: var(--gold-dark); letter-spacing: 0.2em; margin-bottom: 16px; text-transform: uppercase; }
+
+  /* ── LAYOUT ── */
+  .main-layout { display: flex; gap: 16px; align-items: flex-start; width: 100%; max-width: 1150px; }
+
+  .game-panel {
+    flex: 0 0 auto; width: 360px;
+    background: var(--panel); border: 2px solid var(--panel-border);
+    border-radius: 18px; padding: 14px;
+    box-shadow: 0 0 40px rgba(201,168,76,0.12), inset 0 0 30px rgba(0,0,0,0.4);
+  }
+
+  .prob-panel {
+    flex: 1 1 auto; min-width: 340px;
+    background: var(--panel); border: 2px solid var(--panel-border);
+    border-radius: 18px; padding: 14px 12px;
+    box-shadow: 0 0 40px rgba(201,168,76,0.1), inset 0 0 30px rgba(0,0,0,0.4);
+  }
+  .prob-panel.hidden { display: none; }
+
+  /* ── SECRET ROW ── */
+  .secret-row {
+    display: flex; justify-content: center; gap: 8px;
+    margin-bottom: 12px; padding: 10px;
+    background: #1a1005; border-radius: 10px; border: 1px solid var(--gold-dark);
+  }
+  .secret-peg {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid #444; background: #0d0a04;
+    position: relative; overflow: hidden; transition: all 0.4s;
+  }
+  .secret-peg.revealed { border-color: var(--gold); }
+
+  /* ── BOARD ── */
+  .board { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .board-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 6px; border-radius: 8px;
+    background: rgba(0,0,0,0.2); border: 1px solid transparent; transition: all 0.3s;
+  }
+  .board-row.active {
+    border-color: var(--gold); background: rgba(201,168,76,0.07);
+    box-shadow: 0 0 10px rgba(201,168,76,0.1);
+  }
+  .row-number {
+    font-family: 'Orbitron', monospace; font-size: 0.65rem;
+    color: var(--gold-dark); width: 16px; text-align: center; flex-shrink: 0;
+  }
+  .guess-pegs { display: flex; gap: 6px; flex: 1; }
+  .guess-peg {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid #444; background: #1a1005;
+    cursor: pointer; transition: transform 0.15s, border-color 0.15s;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .guess-peg:hover:not(.locked) { transform: scale(1.1); border-color: var(--gold-dark); }
+  .guess-peg.filled { border-color: rgba(255,255,255,0.2); }
+  .guess-peg.locked { cursor: default; }
+
+  /* ── FEEDBACK PEGS ── */
+  .feedback { display: grid; grid-template-columns: repeat(2,1fr); gap: 3px; width: 38px; flex-shrink: 0; }
+  .fb-peg { width: 16px; height: 16px; border-radius: 50%; background: #1a1005; border: 1px solid #3a2a10; }
+  .fb-peg.hit { background: radial-gradient(circle at 35% 30%, #ff7070, #cc1515); border-color: #ff3333; box-shadow: 0 0 5px rgba(255,50,50,0.7); }
+  .fb-peg.near { background: radial-gradient(circle at 35% 30%, #ffffff, #cccccc); border-color: #aaaaaa; box-shadow: 0 0 4px rgba(255,255,255,0.5); }
+
+  /* ── PALETA: 8 en una sola fila ── */
+  .palette {
+    display: flex; justify-content: center; flex-wrap: nowrap;
+    gap: 5px; margin-bottom: 10px; padding: 8px 10px;
+    background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px solid var(--gold-dark);
+  }
+  .palette-color {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    cursor: pointer; border: 3px solid transparent;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .palette-color:hover { transform: scale(1.12); }
+  .palette-color.selected {
+    border-color: var(--gold-light) !important;
+    box-shadow: 0 0 16px rgba(240,220,120,0.7); transform: scale(1.1);
+  }
+
+  /* ── SPHERE ── */
+  .sphere { position: absolute; inset: 0; border-radius: 50%; }
+  .sphere::after {
+    content: ''; position: absolute; top: 14%; left: 18%;
+    width: 36%; height: 28%; border-radius: 50%;
+    background: rgba(255,255,255,0.38); filter: blur(3px);
+  }
+  .sphere.dark::after { background: rgba(255,255,255,0.65); filter: blur(2px); }
+
+  /* ── MENSAJE Y CONTROLES ── */
+  .message {
+    text-align: center; font-family: 'Orbitron', monospace;
+    font-size: 0.72rem; min-height: 24px; margin-bottom: 8px;
+    letter-spacing: 0.07em; color: var(--gold-light);
+  }
+  .message.win { color: #60e060; text-shadow: 0 0 12px rgba(80,220,80,0.5); }
+  .message.lose { color: #e06060; text-shadow: 0 0 12px rgba(220,80,80,0.5); }
+
+  .options {
+    display: flex; align-items: center; gap: 12px;
+    justify-content: center; margin-bottom: 10px;
+    font-size: 0.75rem; color: var(--gold-dark); font-weight: 600; flex-wrap: wrap;
+  }
+  .options label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  select { background: #1a1005; color: var(--gold-light); border: 1px solid var(--gold-dark); border-radius: 4px; padding: 1px 5px; font-family: 'Rajdhani', sans-serif; font-size: 0.82rem; }
+  input[type=checkbox] { accent-color: var(--gold); }
+
+  .attempts-label { font-family: 'Orbitron', monospace; font-size: 0.6rem; color: var(--gold-dark); text-align: center; margin-bottom: 7px; letter-spacing: 0.12em; }
+
+  .feedback-legend {
+    display: flex; justify-content: center; gap: 14px;
+    margin-bottom: 10px; font-size: 0.7rem; color: var(--gold-dark); flex-wrap: wrap;
+  }
+  .feedback-legend span { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .legend-dot.hit { background: radial-gradient(circle at 35% 30%, #ff7070, #cc1515); border: 1px solid #ff3333; }
+  .legend-dot.near { background: radial-gradient(circle at 35% 30%, #fff, #ccc); border: 1px solid #aaa; }
+
+  .controls { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; }
+  button {
+    font-family: 'Orbitron', monospace; font-size: 0.62rem; font-weight: 700;
+    letter-spacing: 0.08em; padding: 8px 13px; border-radius: 7px;
+    border: none; cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+  }
+  #btn-guess { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #1a1005; box-shadow: 0 3px 12px rgba(201,168,76,0.3); }
+  #btn-guess:hover:not(:disabled) { box-shadow: 0 3px 20px rgba(201,168,76,0.5); transform: translateY(-1px); }
+  #btn-guess:disabled { opacity: 0.4; cursor: not-allowed; }
+  #btn-clear { background: rgba(255,255,255,0.07); color: var(--gold-dark); border: 1px solid var(--gold-dark); }
+  #btn-clear:hover { background: rgba(255,255,255,0.12); }
+  #btn-new { background: rgba(200,60,60,0.2); color: #e08080; border: 1px solid #804040; }
+  #btn-new:hover { background: rgba(200,60,60,0.35); }
+  #btn-reveal { background: rgba(60,60,200,0.2); color: #8080e0; border: 1px solid #404080; }
+  #btn-reveal:hover { background: rgba(60,60,200,0.35); }
+  #btn-toggle-probs { background: rgba(80,140,200,0.15); color: #80b8e8; border: 1px solid #405880; }
+  #btn-toggle-probs:hover { background: rgba(80,140,200,0.28); }
+  #btn-toggle-probs.hidden-active { background: rgba(80,140,200,0.28); color: #a0d0ff; border-color: #6090c0; }
+
+  /* ══ PANEL DERECHO ══ */
+  .prob-title { font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; color: var(--gold-light); text-align: center; margin-bottom: 3px; text-transform: uppercase; }
+  .prob-subtitle { font-size: 0.68rem; color: var(--gold-dark); text-align: center; margin-bottom: 12px; line-height: 1.4; }
+  .prob-table-wrap { overflow-x: auto; margin-bottom: 10px; }
+
+  table.prob-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  table.prob-table th {
+    font-family: 'Orbitron', monospace; font-size: 0.55rem; font-weight: 700;
+    letter-spacing: 0.08em; color: var(--gold-dark);
+    padding: 6px 3px; text-align: center;
+    border-bottom: 1px solid var(--gold-dark); background: rgba(0,0,0,0.3); white-space: nowrap;
+  }
+  table.prob-table td {
+    padding: 4px 3px; text-align: center;
+    border-bottom: 1px solid rgba(138,106,42,0.15);
+    font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.78rem;
+    position: relative; min-width: 46px;
+  }
+  td.color-cell { white-space: nowrap; text-align: left; padding-left: 5px; min-width: 72px; }
+  .color-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; margin-right: 4px; border: 1px solid rgba(255,255,255,0.12); }
+  .color-swatch.dark-color { border: 1.5px solid #777; box-shadow: 0 0 4px rgba(200,200,200,0.2); }
+
+  td.total-cell { font-family: 'Orbitron', monospace; font-size: 0.62rem; color: var(--gold-light); min-width: 50px; border-left: 1px solid rgba(138,106,42,0.3); }
+  th.total-th { border-left: 1px solid rgba(138,106,42,0.3); color: var(--gold) !important; }
+
+  .cell-bar { position: absolute; bottom: 0; left: 0; right: 0; border-radius: 2px; opacity: 0.22; pointer-events: none; transition: height 0.35s ease; }
+  table.prob-table td:hover .cell-bar { opacity: 0.4; }
+  .prob-val { position: relative; z-index: 1; }
+
+  table.prob-table tr.highlighted-row td { background: rgba(201,168,76,0.07); }
+  table.prob-table tr.highlighted-row td.color-cell { border-left: 2px solid var(--gold); }
+  table.prob-table tr.excluded-row { opacity: 0.3; }
+  table.prob-table tr.sum-row td { font-family: 'Orbitron', monospace; font-size: 0.54rem; color: var(--gold-dark); border-top: 1px solid var(--gold-dark); border-bottom: none; padding-top: 6px; }
+  table.prob-table tr.sum-row td.color-cell { text-align: left; padding-left: 5px; }
+  table.prob-table tr.sum-row td.total-cell { color: var(--gold-dark); }
+
+  .prob-legend { display: flex; justify-content: center; gap: 12px; margin-top: 8px; font-size: 0.65rem; color: var(--gold-dark); flex-wrap: wrap; }
+  .prob-legend span { display: flex; align-items: center; gap: 4px; }
+  .prob-legend-box { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ── SUGERENCIA ── */
+  .suggestion-section { margin-top: 12px; border-top: 1px solid rgba(138,106,42,0.3); padding-top: 10px; }
+  .suggestion-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .suggestion-label { font-family: 'Orbitron', monospace; font-size: 0.6rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; }
+  #btn-toggle-suggestion {
+    font-family: 'Orbitron', monospace; font-size: 0.54rem; font-weight: 700;
+    letter-spacing: 0.07em; padding: 5px 10px; border-radius: 5px;
+    border: 1px solid var(--gold-dark); background: rgba(201,168,76,0.1);
+    color: var(--gold-dark); cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+  }
+  #btn-toggle-suggestion:hover { background: rgba(201,168,76,0.2); color: var(--gold-light); }
+  #btn-toggle-suggestion.active { background: rgba(201,168,76,0.25); color: var(--gold-light); border-color: var(--gold); }
+  .suggestion-content { display: none; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px 10px; border: 1px solid rgba(138,106,42,0.3); }
+  .suggestion-content.visible { display: block; }
+  .suggestion-pegs { display: flex; gap: 6px; justify-content: center; margin-bottom: 6px; }
+  .sug-peg { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); position: relative; overflow: hidden; }
+  .suggestion-text { font-size: 0.68rem; color: var(--gold-dark); text-align: center; line-height: 1.4; }
+  .suggestion-text strong { color: var(--gold-light); }
+
+  /* ── CALIFICACIÓN DE JUGADA ── */
+  .move-rating-section {
+    margin-top: 10px; padding: 10px;
+    background: rgba(0,0,0,0.25); border-radius: 8px;
+    border: 1px solid rgba(138,106,42,0.25);
+  }
+  .move-rating-title {
+    font-family: 'Orbitron', monospace; font-size: 0.58rem;
+    color: var(--gold-dark); letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 6px; text-align: center;
+  }
+  .move-rating-content { display: flex; align-items: center; gap: 12px; justify-content: center; }
+  .rating-score {
+    font-family: 'Orbitron', monospace; font-size: 1.6rem; font-weight: 900;
+    line-height: 1; min-width: 52px; text-align: center;
+  }
+  .rating-bar-wrap { flex: 1; }
+  .rating-track { height: 8px; background: rgba(0,0,0,0.4); border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
+  .rating-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .rating-desc { font-size: 0.7rem; color: var(--gold-dark); text-align: center; }
+
+  /* ── INFO POSIBLES ── */
+  .prob-note { font-size: 0.65rem; color: var(--gold-dark); text-align: center; margin-top: 6px; line-height: 1.6; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 800px) {
+    .main-layout { flex-direction: column; align-items: center; }
+    .game-panel { width: 100%; max-width: 400px; }
+    .prob-panel { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<h1>CodeBreaker</h1>
+<p class="subtitle">Descifra el código secreto</p>
+
+<div class="main-layout">
+
+  <!-- ══ PANEL IZQUIERDO ══ -->
+  <div class="game-panel">
+    <div class="secret-row" id="secret-row"></div>
+    <div class="message" id="message">Elige un color y haz clic en los huecos</div>
+
+    <div class="options">
+      <label>Longitud: <select id="opt-length"><option value="4" selected>4</option><option value="5">5</option></select></label>
+      <label>Duplicados: <input type="checkbox" id="opt-dupes"></label>
+      <label>Intentos: <select id="opt-attempts"><option value="6">6</option><option value="8" selected>8</option><option value="10">10</option><option value="12">12</option></select></label>
+    </div>
+
+    <div class="attempts-label" id="attempts-label"></div>
+    <div class="board" id="board"></div>
+
+    <div class="feedback-legend">
+      <span><div class="legend-dot hit"></div> Rojo = color &amp; pos ✓</span>
+      <span><div class="legend-dot near"></div> Blanco = solo color ✓</span>
+    </div>
+
+    <!-- PALETA: 8 colores en una sola fila -->
+    <div class="palette" id="palette"></div>
+
+    <div class="controls">
+      <button id="btn-clear">Borrar</button>
+      <button id="btn-guess">Confirmar</button>
+      <button id="btn-reveal">Ver Sol.</button>
+      <button id="btn-new">Nueva</button>
+      <button id="btn-toggle-probs">Ocultar Probs</button>
+    </div>
+  </div>
+
+  <!-- ══ PANEL DERECHO ══ -->
+  <div class="prob-panel" id="prob-panel">
+    <div class="prob-title">📊 Tabla de Probabilidades</div>
+    <div class="prob-subtitle">% por posición · TOTAL = suma de fila (máx 400%)</div>
+
+    <div class="prob-table-wrap">
+      <table class="prob-table" id="prob-table"></table>
+    </div>
+
+    <div class="prob-legend">
+      <span><div class="prob-legend-box" style="background:rgba(60,190,60,0.55)"></div>Alta (&gt;25%)</span>
+      <span><div class="prob-legend-box" style="background:rgba(200,190,40,0.5)"></div>Media (12–25%)</span>
+      <span><div class="prob-legend-box" style="background:rgba(190,70,70,0.4)"></div>Baja (&lt;12%)</span>
+      <span><div class="prob-legend-box" style="background:rgba(100,100,100,0.2)"></div>Imposible</span>
+    </div>
+
+    <div class="prob-note" id="prob-note"></div>
+
+    <!-- SUGERENCIA -->
+    <div class="suggestion-section">
+      <div class="suggestion-header">
+        <span class="suggestion-label">💡 Sugerencia óptima</span>
+        <button id="btn-toggle-suggestion">Mostrar</button>
+      </div>
+      <div class="suggestion-content" id="suggestion-content">
+        <div class="suggestion-pegs" id="suggestion-pegs"></div>
+        <div class="suggestion-text" id="suggestion-text">Calculando…</div>
+      </div>
+    </div>
+
+    <!-- CALIFICACIÓN DE JUGADA -->
+    <div class="move-rating-section" id="move-rating-section" style="display:none">
+      <div class="move-rating-title">⚡ Calificación de tu última jugada</div>
+      <div class="move-rating-content">
+        <div class="rating-score" id="rating-score">—</div>
+        <div class="rating-bar-wrap">
+          <div class="rating-track">
+            <div class="rating-fill" id="rating-fill" style="width:0%"></div>
+          </div>
+          <div class="rating-desc" id="rating-desc"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// DATOS
+// ════════════════════════════════════════════
+const COLORS = [
+  { id:'red',    hex:'#dd2222', label:'Rojo',     dark:false },
+  { id:'green',  hex:'#22b055', label:'Verde',    dark:false },
+  { id:'blue',   hex:'#1a68e0', label:'Azul',     dark:false },
+  { id:'yellow', hex:'#e0cc10', label:'Amarillo', dark:false },
+  { id:'orange', hex:'#e86818', label:'Naranja',  dark:false },
+  { id:'white',  hex:'#dddbd6', label:'Blanco',   dark:false },
+  { id:'black',  hex:'#383838', label:'Negro',    dark:true  },
+  { id:'purple', hex:'#8830c8', label:'Morado',   dark:false },
+];
+const CID = COLORS.map(c => c.id);
+
+// ════════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════════
+let CODE_LENGTH    = 4;
+let MAX_ATTEMPTS   = 8;
+let ALLOW_DUPES    = false;
+let secret         = [];
+let currentRow     = 0;
+let currentGuess   = [];
+let selectedColor  = null;
+let gameOver       = false;
+let history        = [];
+let possibleCodes  = [];  // espacio viable actual
+let allCodesAtTurn = [];  // espacio al inicio del turno (para calcular rating)
+let suggestion     = null;
+let showSuggestion = false;
+
+// ════════════════════════════════════════════
+// EVALUACIÓN
+// ════════════════════════════════════════════
+function evalCode(guess, code) {
+  let b = 0, w = 0;
+  const sl = [], gl = [];
+  for (let i = 0; i < code.length; i++) {
+    if (guess[i] === code[i]) b++;
+    else { sl.push(code[i]); gl.push(guess[i]); }
+  }
+  gl.forEach(g => { const idx = sl.indexOf(g); if (idx !== -1) { w++; sl.splice(idx,1); } });
+  return { blacks: b, whites: w };
+}
+
+// ════════════════════════════════════════════
+// GENERAR TODOS LOS CÓDIGOS (sin repetición según ALLOW_DUPES)
+// ════════════════════════════════════════════
+function generateAllCodes() {
+  const res = [];
+  function rec(cur) {
+    if (cur.length === CODE_LENGTH) { res.push([...cur]); return; }
+    for (const id of CID) {
+      if (!ALLOW_DUPES && cur.includes(id)) continue;
+      cur.push(id); rec(cur); cur.pop();
+    }
+  }
+  rec([]);
+  return res;
+}
+
+// TODOS los códigos incluyendo con repetición (para sugerencia)
+function generateAllCodesWithDupes() {
+  const res = [];
+  function rec(cur) {
+    if (cur.length === CODE_LENGTH) { res.push([...cur]); return; }
+    for (const id of CID) { cur.push(id); rec(cur); cur.pop(); }
+  }
+  rec([]);
+  return res;
+}
+
+function filterPossible(guess, blacks, whites) {
+  possibleCodes = possibleCodes.filter(code => {
+    const r = evalCode(guess, code);
+    return r.blacks === blacks && r.whites === whites;
+  });
+}
+
+// ════════════════════════════════════════════
+// PROBABILIDADES
+// ════════════════════════════════════════════
+function computeProbs() {
+  const total = possibleCodes.length;
+  const counts = {};
+  CID.forEach(id => { counts[id] = Array(CODE_LENGTH).fill(0); });
+  possibleCodes.forEach(code => { code.forEach((cid, pos) => counts[cid][pos]++); });
+  const probs = {};
+  CID.forEach(id => { probs[id] = counts[id].map(n => total > 0 ? (n / total * 100) : 0); });
+  return probs;
+}
+
+// ════════════════════════════════════════════
+// SCORE MINIMAX para un candidato
+// Devuelve { worstCase, expected }
+// ════════════════════════════════════════════
+function scoreCandidate(candidate, viables) {
+  const groups = {};
+  for (const possible of viables) {
+    const r = evalCode(candidate, possible);
+    const key = r.blacks * 10 + r.whites;
+    groups[key] = (groups[key] || 0) + 1;
+  }
+  const vals = Object.values(groups);
+  const worstCase = Math.max(...vals);
+  const expected = vals.reduce((s, v) => s + v * v, 0) / viables.length;
+  return { worstCase, expected, score: worstCase * 10000 + expected };
+}
+
+// ════════════════════════════════════════════
+// SUGERENCIA ÓPTIMA
+// Siempre evalúa TODOS los códigos posibles (con y sin duplicados),
+// elige minimax. En empate prefiere uno viable.
+// ════════════════════════════════════════════
+function computeSuggestion() {
+  if (possibleCodes.length === 0) { suggestion = null; return; }
+  if (possibleCodes.length === 1) { suggestion = possibleCodes[0]; return; }
+
+  // Primer intento: sugerencia estática óptima
+  if (history.length === 0) {
+    suggestion = CID.slice(0, CODE_LENGTH);
+    return;
+  }
+
+  // Candidatos: los viables + TODOS con duplicados (para sugerencias estratégicas)
+  // Limitamos a un tamaño razonable para no bloquear el hilo
+  const viableSet = new Set(possibleCodes.map(c => c.join(',')));
+
+  // Pool completo con duplicados para buscar mejores candidatos
+  let allPool;
+  if (possibleCodes.length <= 30) {
+    // Podemos evaluar el pool completo con duplicados
+    allPool = generateAllCodesWithDupes();
+  } else {
+    // Muchos posibles: usamos solo los viables como candidatos (suficiente)
+    allPool = possibleCodes;
+  }
+
+  let bestScore = Infinity;
+  let bestIsViable = false;
+  let bestCandidate = null;
+
+  for (const candidate of allPool) {
+    const { score } = scoreCandidate(candidate, possibleCodes);
+    const isViable = viableSet.has(candidate.join(','));
+
+    // Mejor si: score menor, o mismo score pero el actual no es viable y este sí
+    if (score < bestScore || (score === bestScore && !bestIsViable && isViable)) {
+      bestScore = score;
+      bestCandidate = candidate;
+      bestIsViable = isViable;
+    }
+  }
+
+  suggestion = bestCandidate;
+}
+
+// ════════════════════════════════════════════
+// EXPECTED SIZE: tamaño esperado del grupo que
+// queda tras un intento = Σ |grupo|² / n
+// Cuanto MENOR, mejor divide el espacio.
+// ════════════════════════════════════════════
+function expectedSize(candidate, viables) {
+  const n = viables.length;
+  if (n === 0) return 0;
+  const groups = {};
+  for (const possible of viables) {
+    const r = evalCode(candidate, possible);
+    const key = r.blacks * 10 + r.whites;
+    groups[key] = (groups[key] || 0) + 1;
+  }
+  return Object.values(groups).reduce((s, v) => s + v * v, 0) / n;
+}
+
+// ════════════════════════════════════════════
+// CALIFICACIÓN DE JUGADA
+// ratio = E_mia / E_optima
+// nota = 10 / ratio  → 10 si perfecto, baja si peor
+// ════════════════════════════════════════════
+function computeMoveRating(guess) {
+  const viables = allCodesAtTurn;
+  if (viables.length <= 1) return null;
+  if (viables.length <= 2) return 10.0;
+
+  const myE = expectedSize(guess, viables);
+
+  let bestE = Infinity;
+  const pool = viables.length <= 40 ? generateAllCodesWithDupes() : viables;
+  for (const candidate of pool) {
+    const e = expectedSize(candidate, viables);
+    if (e < bestE) bestE = e;
+  }
+
+  if (bestE === 0 || myE === 0) return 10.0;
+  const ratio = myE / bestE;
+  const rawRating = Math.min(10, 10 / ratio);
+  const rating = Math.max(0, 10 - 2 * (10 - rawRating));
+  return Math.round(rating * 10) / 10;
+}
+
+// ════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════
+function sphere(hex, dark) {
+  return `<div class="sphere ${dark ? 'dark' : ''}" style="background:${hex}"></div>`;
+}
+function colorById(id) { return COLORS.find(c => c.id === id); }
+
+// Color degradado rojo→amarillo→verde según valor 0-1
+function heatColor(t) {
+  // t=0 → rojo, t=0.5 → amarillo, t=1 → verde
+  if (t <= 0.5) {
+    const r = 200, g = Math.round(t * 2 * 180), b = 40;
+    return `rgba(${r},${g},${b},0.85)`;
+  } else {
+    const r = Math.round((1 - (t - 0.5) * 2) * 200), g = 190, b = 40;
+    return `rgba(${r},${g},${b},0.85)`;
+  }
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+function init() {
+  CODE_LENGTH   = parseInt(document.getElementById('opt-length').value);
+  MAX_ATTEMPTS  = parseInt(document.getElementById('opt-attempts').value);
+  ALLOW_DUPES   = document.getElementById('opt-dupes').checked;
+  history       = [];
+  currentRow    = 0;
+  currentGuess  = Array(CODE_LENGTH).fill(null);
+  selectedColor = null;
+  gameOver      = false;
+  possibleCodes = generateAllCodes();
+  allCodesAtTurn = [...possibleCodes];
+  secret        = possibleCodes[Math.floor(Math.random() * possibleCodes.length)];
+
+  solutionVisible = false; document.getElementById('btn-reveal').textContent = 'Ver Sol.';
+  document.getElementById('message').textContent = 'Elige un color y haz clic en los huecos';
+  document.getElementById('message').className = 'message';
+  document.getElementById('move-rating-section').style.display = 'none';
+
+  renderSecretRow();
+  renderBoard();
+  renderPalette();
+  updateAttemptsLabel();
+  computeSuggestion();
+  renderProbTable();
+  renderSuggestion();
+}
+
+// ════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════
+function renderSecretRow() {
+  const row = document.getElementById('secret-row');
+  row.innerHTML = '';
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    const peg = document.createElement('div');
+    peg.className = 'secret-peg' + (gameOver ? ' revealed' : '');
+    if (gameOver) { const c = colorById(secret[i]); peg.innerHTML = sphere(c.hex, c.dark); }
+    row.appendChild(peg);
+  }
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  for (let r = MAX_ATTEMPTS - 1; r >= 0; r--) {
+    const row = document.createElement('div');
+    row.className = 'board-row' + (r === currentRow && !gameOver ? ' active' : '');
+    row.dataset.row = r;
+
+    const num = document.createElement('div');
+    num.className = 'row-number';
+    num.textContent = r + 1;
+    row.appendChild(num);
+
+    const pegs = document.createElement('div');
+    pegs.className = 'guess-pegs';
+    for (let p = 0; p < CODE_LENGTH; p++) {
+      const peg = document.createElement('div');
+      peg.className = 'guess-peg';
+      peg.dataset.pos = p;
+      const h = history[r];
+      if (h) {
+        const c = colorById(h.guess[p]);
+        if (c) { peg.innerHTML = sphere(c.hex, c.dark); peg.classList.add('filled'); }
+        peg.classList.add('locked');
+      } else if (r === currentRow && !gameOver) {
+        if (currentGuess[p]) {
+          const c = colorById(currentGuess[p]);
+          peg.innerHTML = sphere(c.hex, c.dark); peg.classList.add('filled');
+        }
+        peg.addEventListener('click', () => onPegClick(p));
+      } else {
+        peg.classList.add('locked');
+      }
+      pegs.appendChild(peg);
+    }
+    row.appendChild(pegs);
+
+    const fb = document.createElement('div'); fb.className = 'feedback';
+    for (let f = 0; f < CODE_LENGTH; f++) {
+      const fp = document.createElement('div'); fp.className = 'fb-peg';
+      const h = history[r];
+      if (h) {
+        if (f < h.blacks) fp.classList.add('hit');
+        else if (f < h.blacks + h.whites) fp.classList.add('near');
+      }
+      fb.appendChild(fp);
+    }
+    row.appendChild(fb);
+    board.appendChild(row);
+  }
+}
+
+function renderPalette() {
+  const palette = document.getElementById('palette');
+  palette.innerHTML = '';
+  COLORS.forEach(c => {
+    const btn = document.createElement('div');
+    btn.className = 'palette-color' + (selectedColor === c.id ? ' selected' : '');
+    btn.title = c.label;
+    if (c.dark && selectedColor !== c.id) btn.style.border = '3px solid #666';
+    btn.innerHTML = sphere(c.hex, c.dark);
+    btn.addEventListener('click', () => onColorPick(c.id));
+    palette.appendChild(btn);
+  });
+}
+
+function updateAttemptsLabel() {
+  const rem = MAX_ATTEMPTS - currentRow;
+  document.getElementById('attempts-label').textContent =
+    `Intento ${currentRow + 1} de ${MAX_ATTEMPTS} — ${rem} restante${rem !== 1 ? 's' : ''}`;
+}
+
+// ════════════════════════════════════════════
+// INTERACCIÓN MEJORADA
+// Al seleccionar color: si hay huecos vacíos → coloca directamente en el primero
+// Si está lleno → solo selecciona (cambio manual haciendo click en hueco)
+// ════════════════════════════════════════════
+function onColorPick(colorId) {
+  if (gameOver) return;
+  selectedColor = colorId;
+  renderPalette();
+  renderProbTable();
+
+  // Auto-colocar en la primera posición vacía
+  const firstEmpty = currentGuess.indexOf(null);
+  if (firstEmpty !== -1) {
+    currentGuess[firstEmpty] = colorId;
+    refreshCurrentRow();
+  }
+}
+
+function onPegClick(pos) {
+  if (gameOver) return;
+  if (!selectedColor) return;
+  // Si ya está ese color ahí, lo borra; si no, lo pone
+  currentGuess[pos] = (currentGuess[pos] === selectedColor) ? null : selectedColor;
+  refreshCurrentRow();
+}
+
+function refreshCurrentRow() {
+  const row = document.querySelector(`.board-row[data-row="${currentRow}"]`);
+  if (!row) return;
+  row.querySelectorAll('.guess-peg').forEach((peg, i) => {
+    if (currentGuess[i]) {
+      const c = colorById(currentGuess[i]);
+      peg.innerHTML = sphere(c.hex, c.dark); peg.classList.add('filled');
+    } else {
+      peg.innerHTML = ''; peg.classList.remove('filled');
+    }
+  });
+}
+
+// ════════════════════════════════════════════
+// CONFIRMAR JUGADA
+// ════════════════════════════════════════════
+function confirmGuess() {
+  if (gameOver) return;
+  const guess = [...currentGuess];
+  const filled = guess.filter(g => g !== null);
+  if (filled.length === 0) return;
+
+  // Snapshot AHORA (antes de filtrar) para que el rating use los viables correctos
+  allCodesAtTurn = [...possibleCodes];
+
+  // Rellenar huecos vacíos con sentinela
+  for (let i = 0; i < guess.length; i++) {
+    if (guess[i] === null) guess[i] = '__empty__';
+  }
+
+  // Calcular rating con los viables actuales (snapshot recién hecho)
+  const rating = computeMoveRating(guess);
+
+  const result = evalCode(guess, secret);
+  history[currentRow] = { guess: [...guess], blacks: result.blacks, whites: result.whites };
+
+  filterPossible(guess, result.blacks, result.whites);
+  renderFeedback(currentRow, result);
+
+  if (result.blacks === CODE_LENGTH) {
+    gameOver = true;
+    document.getElementById('message').textContent =
+      `🎉 ¡Descifrado en ${currentRow + 1} intento${currentRow !== 0 ? 's' : ''}!`;
+    document.getElementById('message').className = 'message win';
+    renderSecretRow(); lockRow(currentRow);
+    computeSuggestion(); renderProbTable(); renderSuggestion();
+    if (rating !== null) showMoveRating(rating);
+    return;
+  }
+
+  currentRow++;
+  if (currentRow >= MAX_ATTEMPTS) {
+    gameOver = true;
+    document.getElementById('message').textContent = '¡Sin intentos! El código era:';
+    document.getElementById('message').className = 'message lose';
+    renderSecretRow();
+    computeSuggestion(); renderProbTable(); renderSuggestion();
+    if (rating !== null) showMoveRating(rating);
+    return;
+  }
+
+  lockRow(currentRow - 1);
+  currentGuess = Array(CODE_LENGTH).fill(null);
+  activateRow(currentRow);
+  updateAttemptsLabel();
+  computeSuggestion();
+  renderProbTable();
+  renderSuggestion();
+  // Mostrar rating DESPUÉS de todo el render del nuevo turno
+  if (rating !== null) showMoveRating(rating);
+}
+
+function showMoveRating(rating) {
+  const section = document.getElementById('move-rating-section');
+  const scoreEl = document.getElementById('rating-score');
+  const fillEl  = document.getElementById('rating-fill');
+  const descEl  = document.getElementById('rating-desc');
+
+  section.style.display = 'block';
+  scoreEl.textContent = rating.toFixed(1);
+
+  // Color sólido: verde ≥7, ámbar 4-7, rojo <4
+  let color, barColor;
+  if (rating >= 7) {
+    color = '#4cc96a'; barColor = '#4cc96a';
+  } else if (rating >= 4) {
+    color = '#e8a830'; barColor = '#e8a830';
+  } else {
+    color = '#cc3030'; barColor = '#cc3030';
+  }
+
+  scoreEl.style.color = color;
+  fillEl.style.width = (rating * 10) + '%';
+  fillEl.style.background = barColor;
+
+  let desc;
+  if (rating >= 9.5)     desc = '🏆 Jugada perfecta';
+  else if (rating >= 8)  desc = '⭐ Muy buena jugada';
+  else if (rating >= 7)  desc = '✅ Buena jugada';
+  else if (rating >= 5)  desc = '➡️ Jugada aceptable';
+  else if (rating >= 3)  desc = '⚠️ Jugada subóptima';
+  else                   desc = '❌ Jugada muy mala';
+
+  // Mostrar también el ratio implícito como contexto
+  const ratioStr = rating > 0 ? `E_mía/E_óptima = ${(10 / rating).toFixed(2)}` : '';
+  descEl.innerHTML = `<strong style="color:${color}">${desc}</strong><span style="color:var(--gold-dark);margin-left:6px;font-size:0.62rem">${ratioStr}</span>`;
+}
+
+function renderFeedback(rowIdx, result) {
+  const row = document.querySelector(`.board-row[data-row="${rowIdx}"]`);
+  if (!row) return;
+  const fbPegs = row.querySelectorAll('.fb-peg');
+  let i = 0;
+  for (let b = 0; b < result.blacks; b++, i++) fbPegs[i].className = 'fb-peg hit';
+  for (let w = 0; w < result.whites; w++, i++) fbPegs[i].className = 'fb-peg near';
+}
+
+function lockRow(rowIdx) {
+  const row = document.querySelector(`.board-row[data-row="${rowIdx}"]`);
+  if (!row) return;
+  row.classList.remove('active');
+  row.querySelectorAll('.guess-peg').forEach(p => {
+    p.classList.add('locked');
+    const clone = p.cloneNode(true);
+    p.parentNode.replaceChild(clone, p);
+  });
+}
+
+function activateRow(rowIdx) {
+  const row = document.querySelector(`.board-row[data-row="${rowIdx}"]`);
+  if (!row) return;
+  row.classList.add('active');
+  row.querySelectorAll('.guess-peg').forEach((peg, i) => {
+    peg.addEventListener('click', () => onPegClick(i));
+  });
+}
+
+// ════════════════════════════════════════════
+// TABLA DE PROBABILIDADES
+// ════════════════════════════════════════════
+function pctColor(pct) {
+  if (pct < 0.05) return 'rgba(138,106,42,0.35)';
+  const t = Math.min(1, pct / 50); // 0→rojo, 50%→verde
+  return heatColor(t);
+}
+
+function totalColor(total, maxTotal) {
+  if (total < 0.05) return 'rgba(138,106,42,0.35)';
+  const t = Math.min(1, total / maxTotal);
+  return heatColor(t);
+}
+
+function renderProbTable() {
+  const probs = computeProbs();
+  const table = document.getElementById('prob-table');
+  table.innerHTML = '';
+
+  const thead = document.createElement('thead');
+  const hrow  = document.createElement('tr');
+  const th0   = document.createElement('th');
+  th0.textContent = 'Color'; th0.style.textAlign = 'left'; th0.style.paddingLeft = '5px';
+  hrow.appendChild(th0);
+  for (let p = 0; p < CODE_LENGTH; p++) {
+    const th = document.createElement('th'); th.textContent = `Pos ${p+1}`; hrow.appendChild(th);
+  }
+  const thTotal = document.createElement('th');
+  thTotal.textContent = 'TOTAL'; thTotal.className = 'total-th'; hrow.appendChild(thTotal);
+  const thSwatch = document.createElement('th');
+  thSwatch.textContent = ''; thSwatch.className = 'total-th'; hrow.appendChild(thSwatch);
+  thead.appendChild(hrow); table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const maxTotal = CODE_LENGTH * 100;
+
+  COLORS.forEach(color => {
+    const allZero = probs[color.id].every(v => v < 0.001);
+    const row = document.createElement('tr');
+    if (allZero) row.classList.add('excluded-row');
+    if (selectedColor === color.id) row.classList.add('highlighted-row');
+
+    // Celda color (izquierda)
+    const tdC = document.createElement('td'); tdC.className = 'color-cell';
+    const sw = document.createElement('span');
+    sw.className = 'color-swatch' + (color.dark ? ' dark-color' : '');
+    sw.style.background = color.hex;
+    tdC.appendChild(sw); tdC.appendChild(document.createTextNode(color.label));
+    row.appendChild(tdC);
+
+    // Celdas por posición
+    let rowTotal = 0;
+    probs[color.id].forEach(pct => {
+      rowTotal += pct;
+      const td = document.createElement('td');
+
+      // Barra de fondo
+      const bar = document.createElement('div'); bar.className = 'cell-bar';
+      bar.style.height = Math.min(100, pct * 2.8) + '%';
+      let barBg = 'transparent';
+      if (pct >= 25)      barBg = 'rgba(60,190,60,0.45)';
+      else if (pct >= 12) barBg = 'rgba(200,190,40,0.4)';
+      else if (pct > 0.1) barBg = 'rgba(190,70,70,0.35)';
+      bar.style.background = barBg;
+      td.appendChild(bar);
+
+      const val = document.createElement('span'); val.className = 'prob-val';
+      if (allZero) {
+        val.textContent = '—'; val.style.color = 'rgba(138,106,42,0.4)';
+      } else if (pct < 0.05) {
+        val.textContent = '—'; val.style.color = 'rgba(138,106,42,0.35)';
+      } else {
+        val.textContent = pct.toFixed(1) + '%';
+        val.style.color = pctColor(pct);
+      }
+      td.appendChild(val); row.appendChild(td);
+    });
+
+    // Celda TOTAL con degradado rojo→verde
+    const tdTotal = document.createElement('td'); tdTotal.className = 'total-cell';
+    if (allZero) {
+      tdTotal.textContent = '—'; tdTotal.style.color = 'rgba(138,106,42,0.4)';
+    } else {
+      tdTotal.textContent = rowTotal.toFixed(1) + '%';
+      tdTotal.style.color = totalColor(rowTotal, maxTotal);
+      tdTotal.style.fontWeight = '700';
+    }
+    row.appendChild(tdTotal);
+
+    // Celda swatch derecha
+    const tdSw = document.createElement('td'); tdSw.className = 'total-cell'; tdSw.style.borderLeft = 'none';
+    const swR = document.createElement('span');
+    swR.className = 'color-swatch' + (color.dark ? ' dark-color' : '');
+    swR.style.background = color.hex;
+    tdSw.appendChild(swR); row.appendChild(tdSw);
+    tbody.appendChild(row);
+  });
+
+  // Fila SUMA
+  const sumRow = document.createElement('tr'); sumRow.className = 'sum-row';
+  const tdSL = document.createElement('td'); tdSL.className = 'color-cell'; tdSL.textContent = 'SUMA'; sumRow.appendChild(tdSL);
+  for (let p = 0; p < CODE_LENGTH; p++) {
+    const td = document.createElement('td');
+    const total = COLORS.reduce((acc, c) => acc + (probs[c.id][p] || 0), 0);
+    td.textContent = Math.round(total) + '%'; sumRow.appendChild(td);
+  }
+  const tdST = document.createElement('td'); tdST.className = 'total-cell'; tdST.textContent = maxTotal + '%'; sumRow.appendChild(tdST);
+  const tdSS = document.createElement('td'); tdSS.className = 'total-cell'; sumRow.appendChild(tdSS);
+  tbody.appendChild(sumRow); table.appendChild(tbody);
+
+  // Nota
+  const rem = possibleCodes.length;
+  document.getElementById('prob-note').innerHTML =
+    `Códigos posibles: <strong style="color:var(--gold-light)">${rem.toLocaleString()}</strong>`
+    + (rem === 1 ? ' — <span style="color:#70e870">¡Solo queda uno!</span>' : '')
+    + (rem === 0 ? ' — <span style="color:#e08080">Sin solución compatible</span>' : '');
+}
+
+// ════════════════════════════════════════════
+// SUGERENCIA RENDER
+// ════════════════════════════════════════════
+function renderSuggestion() {
+  const pegsDiv = document.getElementById('suggestion-pegs');
+  const textDiv = document.getElementById('suggestion-text');
+  pegsDiv.innerHTML = '';
+  if (!suggestion) { textDiv.innerHTML = '<em>No disponible</em>'; return; }
+  suggestion.forEach(cid => {
+    const c = colorById(cid); if (!c) return;
+    const peg = document.createElement('div'); peg.className = 'sug-peg';
+    if (c.dark) peg.style.border = '2px solid #666';
+    peg.innerHTML = sphere(c.hex, c.dark);
+    pegsDiv.appendChild(peg);
+  });
+  const names = suggestion.map(id => { const c = colorById(id); return c ? c.label : id; }).join(', ');
+  // Marcar si tiene duplicados
+  const hasDupes = suggestion.length !== new Set(suggestion).size;
+  textDiv.innerHTML = `<strong>${names}</strong>${hasDupes ? ' <span style="color:var(--gold-dim);font-size:0.6rem">(con dup.)</span>' : ''}<br>
+    <span style="font-size:0.62rem">Minimiza el peor caso en el siguiente intento</span>`;
+}
+
+// ════════════════════════════════════════════
+// EVENTOS
+// ════════════════════════════════════════════
+document.getElementById('btn-guess').addEventListener('click', confirmGuess);
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (gameOver) return;
+  currentGuess = Array(CODE_LENGTH).fill(null);
+  const row = document.querySelector(`.board-row[data-row="${currentRow}"]`);
+  if (row) row.querySelectorAll('.guess-peg').forEach(p => { p.innerHTML = ''; p.classList.remove('filled'); });
+});
+
+document.getElementById('btn-new').addEventListener('click', init);
+
+let solutionVisible = false;
+document.getElementById('btn-reveal').addEventListener('click', function() {
+  if (gameOver) return;
+  solutionVisible = !solutionVisible;
+  this.textContent = solutionVisible ? 'Ocultar Sol.' : 'Ver Sol.';
+  const secretRow = document.getElementById('secret-row');
+  secretRow.innerHTML = '';
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    const peg = document.createElement('div');
+    peg.className = 'secret-peg' + (solutionVisible ? ' revealed' : '');
+    if (solutionVisible) {
+      const c = colorById(secret[i]);
+      peg.innerHTML = sphere(c.hex, c.dark);
+    }
+    secretRow.appendChild(peg);
+  }
+});
+
+document.getElementById('btn-toggle-suggestion').addEventListener('click', function() {
+  showSuggestion = !showSuggestion;
+  document.getElementById('suggestion-content').classList.toggle('visible', showSuggestion);
+  this.textContent = showSuggestion ? 'Ocultar' : 'Mostrar';
+  this.classList.toggle('active', showSuggestion);
+});
+
+document.getElementById('btn-toggle-probs').addEventListener('click', function() {
+  const panel = document.getElementById('prob-panel');
+  const hidden = panel.classList.toggle('hidden');
+  this.textContent = hidden ? 'Mostrar Probs' : 'Ocultar Probs';
+  this.classList.toggle('hidden-active', hidden);
+});
+
+document.getElementById('opt-length').addEventListener('change', init);
+document.getElementById('opt-attempts').addEventListener('change', init);
+document.getElementById('opt-dupes').addEventListener('change', init);
+
+init();
+</script>
+</body>
+</html>
